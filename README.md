@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/icon.png" alt="TMenu icon" width="128">
+  <img src="Images/icon.png" alt="TMenu icon" width="128">
 </p>
 
 <h1 align="center">TMenu</h1>
