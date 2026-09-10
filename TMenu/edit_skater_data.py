@@ -1,3 +1,20 @@
+"""
+edit_skater_data.py
+====================
+Per-skater (1-5) memory offsets for the EDIT SKATER tab, parsed straight out of
+the "Skate_3_Skaters.CT" Cheat Engine table so the addresses match it exactly.
+
+SKATERS[n] holds three sections per skater:
+  - rgb_colors: body part -> {red, green, blue} addresses (Float Big Endian)
+  - body_mods:  body/face slider name -> single float address
+  - settings:   Stance / Style / Posture (Byte + dropdown options) and
+                Trucks Tightness / Wheels Hardness (float, unused by the UI today)
+
+GESTURES holds the 4 gesture slot addresses. These are NOT per-skater in the CT -
+there is only one set, and in-game it always applies to whichever skater is
+currently being edited. GESTURE_OPTIONS is the shared dropdown list for all 4.
+"""
+
 SKATERS = {
     1: {
         "rgb_colors": {
@@ -282,21 +299,38 @@ RGB_PARTS = list(SKATERS[1]["rgb_colors"].keys())
 # Dropdown-ready view of the body-mod slider names, in CT order
 BODY_MOD_FIELDS = list(SKATERS[1]["body_mods"].keys())
 
-# RGB swapping - writes a 16-byte swatch/material reference into a second
-# slot 0x20 past each part's "red" float address, instead of touching the
-# float directly. only these parts exposed a swap slot in the original tool.
+# ---------------------------------------------------------------------------
+# RGB Swapping
+# ---------------------------------------------------------------------------
+# The RPCS3 tool's "swap" mechanic doesn't touch the R/G/B floats above at
+# all - it writes a 16-byte swatch/material reference into a *second* slot
+# that sits exactly 0x20 past each part's "red" float address. Whatever
+# swatch that reference points to is what the part renders as, which is how
+# e.g. socks can be made to render as the black custom board's color without
+# ever touching a float. Every part in rgb_colors (including the hidden
+# slots above) has one of these, so the target address is derived instead of
+# hardcoded a second time.
+#
+# Only Hat / Shirt / Pants / Socks / Hidden RGB 1-3 exposed this swap slot in
+# the original tool - hair/head/arms/legs never did, so they're left out of
+# SWAP_TARGET_PARTS on purpose even though the +0x20 math would "work" for
+# them too (untested territory in the original tool).
 SWAP_TARGET_PARTS = ["hat", "shirt", "socks", "pants", "hidden rgb 1", "hidden rgb 2", "hidden rgb 3"]
 
 
 def rgb_swap_target_address(skater: int, part: str) -> int:
-    # address to write a 16-byte swatch reference into for part, e.g. "socks"
+    """Address to write a 16-byte swatch reference into for `part` (lowercase, e.g. 'socks')."""
     return SKATERS[skater]["rgb_colors"][part]["red"] + 0x20
 
-# fixed swatch reference for the black custom board, always this value
+
+# Fixed swatch reference for the black custom board (constant across skaters -
+# it doesn't come from the recipe, it's just always this value in the tool).
 BOARD_SWATCH_BYTES = bytes.fromhex("A8 41 A6 5D 5C 4D D5 93 00 00 44 E2 03 E3 88 17".replace(" ", ""))
 
-# everything else swappable is a live 16-byte swatch reference already in the
-# skater's recipe data, read from memory at swap time. offsets are relative to RECIPE_ADDRESSES
+# Everything else you can swap FROM is a live 16-byte swatch reference
+# already sitting in that skater's clothing recipe data (same 8048-byte
+# region RECIPE_ADDRESSES points at), so it has to be read from memory at
+# swap time rather than hardcoded. Offsets are relative to RECIPE_ADDRESSES.
 RGB_SWAP_SOURCE_OFFSETS = {
     "Current Necklace": 0x5CB0,
     "Current Glasses": 0x5C60,
@@ -304,19 +338,28 @@ RGB_SWAP_SOURCE_OFFSETS = {
     "Current Shoes": 0x5B70,
 }
 
-# "Current Shoes" gets its last byte bumped by 1 before being written to the target
+# "Current Shoes" gets its last byte bumped by 1 before being written to the
+# target slot - carried over as-is from the RPCS3 tool, which does the same
+# adjustment only for the shoes source.
 RGB_SWAP_SHOES_BYTE_BUMP = 1
 
 RGB_SWAP_SOURCES = ["Board"] + list(RGB_SWAP_SOURCE_OFFSETS.keys())
 
 
 def rgb_swap_source_address(skater: int, source: str) -> int:
-    # address to read the 16-byte swatch reference from for a non-Board source
+    """Address to read the 16-byte swatch reference from for a non-Board source."""
     return RECIPE_ADDRESSES[skater] + RGB_SWAP_SOURCE_OFFSETS[source]
 
-# clothing lock - "locking" a slot means continuously re-writing a snapshot
-# of its bytes over whatever the game tries to change it to. "Wrist Item"
-# and "Current Watch" are the same underlying slot, that's not a bug.
+
+# ---------------------------------------------------------------------------
+# Clothing Lock
+# ---------------------------------------------------------------------------
+# Same recipe region as the RGB swap sources above - each of these is a
+# 16-byte clothing-item reference that the game keeps re-reading from, so
+# "locking" one just means continuously re-writing a snapshot of its bytes
+# over whatever the game (or the player, in-game) tries to change it to.
+# "Wrist Item" and "Current Watch" above are the same underlying slot -
+# that's not a bug, the recipe only has one address for it.
 CLOTHING_LOCK_OFFSETS = {
     "Hat": 0x5C40,
     "Shirt": 0x5C90,
@@ -333,8 +376,22 @@ CLOTHING_LOCK_INTERVAL_MS = 500  # how often the lock re-writes its snapshot
 def clothing_lock_address(skater: int, item: str) -> int:
     return RECIPE_ADDRESSES[skater] + CLOTHING_LOCK_OFFSETS[item]
 
-# missing texture - each slot is a 16-byte reference: 8-byte asset ID + 8-byte
-# material ID. zeroing the material's first 4 bytes forces a missing texture.
+
+# ---------------------------------------------------------------------------
+# Missing Texture
+# ---------------------------------------------------------------------------
+# Every clothing/cosmetic slot in the recipe is a 16-byte reference: an 8-byte
+# asset ID followed by an 8-byte material ID (parsed straight out of
+# "Edit_Skater_Asset_Data.CT" - each entry there is "<Part> Asset Data" at
+# RECIPE_ADDRESSES[skater] + this offset, with the leading "3" stripped same
+# as everywhere else in this file, e.g. 3018EA1A0 -> 018EA1A0). Forcing an
+# invalid material (by zeroing the first 4 bytes of the material half, while
+# leaving the asset ID and the material's last 4 bytes alone) makes the game
+# render that slot as a missing texture. Some players want that on purpose.
+#
+# ASSET_DATA_OFFSETS lists every slot found in the CT (kept here as the
+# single source of truth for the whole recipe, not just the missing-texture
+# subset below - Hat/Shirt reuse it for OTHER_CLOTHING_SLOT_ADDRESSES).
 ASSET_DATA_OFFSETS = {
     "Arms": 0x5B20,
     "Legs": 0x5B30,
@@ -360,24 +417,39 @@ ASSET_DATA_OFFSETS = {
 def asset_data_address(skater: int, part: str) -> int:
     return RECIPE_ADDRESSES[skater] + ASSET_DATA_OFFSETS[part]
 
-# these slots don't work correctly with the missing-texture trick
+
+# Excluded per instructions: doesn't work correctly on these slots. "outer
+# and inner torso" = Shirt + Inner Torso (the two torso layers in the CT).
 MISSING_TEXTURE_EXCLUDED = {"Arms", "Legs", "Hat", "Hair", "Inner Torso", "Shirt"}
 
-# every asset-data slot except the excluded ones above
+# Dropdown-ready list: every asset-data slot except the excluded ones above.
 MISSING_TEXTURE_ITEMS = [p for p in ASSET_DATA_OFFSETS if p not in MISSING_TEXTURE_EXCLUDED]
 
-# flag meaning "nothing equipped in this slot" - skip writing if it reads as this
+# In-game default flag for "this slot has nothing equipped" - both the asset
+# ID half and material half are this same 8 bytes repeated. Used as a
+# safety check before writing: if a slot reads as this, the skater isn't
+# wearing anything there, so we skip the write instead of corrupting it.
 MISSING_TEXTURE_UNEQUIPPED_FLAG = bytes([0x01, 0x67, 0x8C, 0x48, 0x62, 0x13, 0x90, 0x59] * 2)
 
 
 def missing_texture_bytes(current_16_bytes: bytes) -> bytes:
-    # keeps the asset ID and material's last 4 bytes, zeroes the material's first 4
+    """Given the current 16-byte asset+material reference, return the bytes
+    to write to force a missing texture: asset ID (first 8 bytes) and the
+    material's last 4 bytes are kept, the material's first 4 bytes are
+    zeroed."""
     return current_16_bytes[:8] + bytes(4) + current_16_bytes[12:16]
 
-# Extra - Invisible parts + low poly / crash-fix recipe mods
 
-# flips between off/on values at a fixed address, not per-skater - applies
-# to whichever skater is being edited in-game. alphabetical order.
+# ---------------------------------------------------------------------------
+# Extra - Invisible parts + low poly / crash-fix recipe mods
+# ---------------------------------------------------------------------------
+# Flips between an "off" value and an "on" value at a fixed address. Most of
+# these are a single byte (off is always 0x00), but Invisible Feet needs two
+# bytes, so every entry stores explicit off/on byte strings instead of a bare
+# on_byte - keeps the format uniform regardless of width. Not per-skater -
+# the RPCS3 tool only ever had one set of these addresses, applying to
+# whichever skater is currently being edited in-game.
+# Kept in alphabetical order.
 INVISIBLE_TOGGLES = {
     "Invisible Arms":   {"address": 0x401565AB0, "off": bytes([0x00]),       "on": bytes([0x41])},
     "Invisible Deck":   {"address": 0x401565B20, "off": bytes([0x00]),       "on": bytes([0x53])},
@@ -390,23 +462,41 @@ INVISIBLE_TOGGLES = {
     "Invisible Wheels": {"address": 0x401565B40, "off": bytes([0x00]),       "on": bytes([0x53])},
 }
 
-# Invisible Pants is the last byte of a 16-byte clothing reference instead,
-# so "off" is a single 0x00 byte but "on" is a full 16-byte replacement value
+# Invisible Pants doesn't follow the simple single-byte pattern above - it's
+# the last byte of a 16-byte clothing reference, so "off" is a single 0x00
+# byte but "on" is a full 16-byte replacement value.
 INVISIBLE_PANTS_ADDRESS = 0x4018E4417
 INVISIBLE_PANTS_ON_BYTES = bytes([
     0x85, 0x2C, 0x7F, 0x38, 0x17, 0x00, 0x17, 0x19,
     0xCD, 0x01, 0x67, 0x8C, 0x48, 0x62, 0x13, 0x90,
 ])
 
-# Gender is stored per-skater but the option list is the same for all 5
+# Gender is stored per-skater (see each skater's settings["Gender"]) but the
+# option list itself (code -> label) is identical for all 5, so it's pulled
+# out once here for anything that needs to build a dropdown without caring
+# which skater is selected yet.
 GENDER_OPTIONS = SKATERS[1]["settings"]["Gender"]["options"]
 
-# dropdown list of invisible-part mods, alphabetical
+# Dropdown-ready list of invisible-part mods, alphabetical. Gender used to
+# live in here too (as an entry that swapped in a second dropdown), but now
+# has its own always-visible dropdown in the UI instead, so it's not part of
+# this list anymore.
 EXTRA_MOD_NAMES = sorted(list(INVISIBLE_TOGGLES.keys()) + ["Invisible Pants"])
 
-# other clothing - branded items (Dr Pepper promo set), per-skater like
-# Invisible Pants above. Male/Female use different reference bytes for the
-# same item since the game keeps separate gendered meshes.
+# ---------------------------------------------------------------------------
+# Other Clothing - branded items (Dr Pepper promo set). Same 16-byte
+# clothing-item-reference mechanism as Invisible Pants above, but unlike
+# that one this IS per-skater - each of the 5 skaters has its own Hat/Shirt
+# asset-data address. Two of the three items share the "Shirt" slot because
+# they're both worn there - selecting one just overwrites whatever the
+# other last wrote. Male/Female give different reference bytes for the same
+# visual item (the game keeps separate gendered meshes).
+#
+# Addresses kept exactly as provided (PS3/ps3mapi addresses, i.e. the
+# leading "3" from the RPCS3/Cheat Engine address already stripped - e.g.
+# 3018EA1A0 -> 018EA1A0). Not derived/computed, so if a skater's item ends
+# up wrong, recheck these first.
+# ---------------------------------------------------------------------------
 OTHER_CLOTHING_SLOT_ADDRESSES = {
     1: {"Hat": 0x018E4440, "Shirt": 0x018E4490},
     2: {"Hat": 0x018EA1A0, "Shirt": 0x018EA1F0},
@@ -444,11 +534,16 @@ def other_clothing_address(skater: int, item_name: str) -> int:
     slot = OTHER_CLOTHING_ITEMS[item_name]["slot"]
     return OTHER_CLOTHING_SLOT_ADDRESSES[skater][slot]
 
-# same order the items are defined above
+# Dropdown-ready list, in the same order the items are defined above.
 OTHER_CLOTHING_NAMES = list(OTHER_CLOTHING_ITEMS.keys())
 
-# team / player names - fixed-length, zero-terminated ASCII strings, not
-# per-skater. `length` includes the zero terminator, so max chars is length - 1
+# ---------------------------------------------------------------------------
+# Team / Player Names
+# ---------------------------------------------------------------------------
+# Fixed-length, zero-terminated ASCII strings, one buffer each - not
+# per-skater, these are team-roster slots. `length` is the full buffer size
+# in memory (including the zero terminator), taken straight from the CT
+# table, so the max usable characters is `length - 1`.
 NAME_FIELDS = {
     "Team Name":     {"address": 0x300DC3AC, "length": 16},
     "Player 1 Name": {"address": 0x30074650, "length": 6},
@@ -458,18 +553,22 @@ NAME_FIELDS = {
     "Player 5 Name": {"address": 0x300DC0B5, "length": 8},
 }
 
-# Skate 3's font renders these as "skate" and "bolt" icons, not typeable normally
+# Skate 3's font maps these two characters to its "skate" and "bolt" icons -
+# handy for team names, not typeable normally, so the UI offers a one-click
+# copy for each.
 NAME_ICON_SKATE = "\u00AB"  # «
 NAME_ICON_BOLT = "\u00BB"   # »
 
+# ---------------------------------------------------------------------------
 # Graphics Spoofer
-
+# ---------------------------------------------------------------------------
 # Ported from the standalone "Graphics Spoofer PS3" tool (Form1.cs): a single
 # "User ID" field written as a null-terminated ASCII string. That tool wrote
 # it to a plain literal address (21828720 decimal), not per-skater and not
 # length-bounded on the C# side - same here, address used exactly as given.
 GRAPHICS_SPOOFER_USER_ID_ADDRESS = 0x14D1470
 
+# ---------------------------------------------------------------------------
 # Graphic Editor - rotation / scale / x / y for each of a skater's 5 custom
 # graphic slots, from Skate_3_Skaters.CT. Every slot is 16 bytes: four
 # consecutive big-endian floats in memory in this exact order - Rotation,
@@ -512,3 +611,54 @@ GRAPHICS_FIELD_OFFSETS = {
 
 def graphics_slot_address(skater: int, slot_name: str) -> int:
     return GRAPHICS_BASE_ADDRESSES[skater] + GRAPHICS_SLOT_OFFSETS[slot_name]
+
+# ---------------------------------------------------------------------------
+# Custom Graphic Injector - ported from the standalone "DDS Graphic Injector"
+# test tool. Not per-skater: this is the game's account-wide bank of 4
+# custom-photo graphic slots (the ones used for boards/shirts/tattoos/etc
+# once assigned in-game), addressed the same "drop the leading 3" way as
+# every other CT-derived address in this file.
+#
+# NOTE: BASE_ADDRESS below is still the test tool's *guess* at the real
+# hardware address (RPCS3 base with the leading "3" dropped) - confirm it
+# against real hardware before relying on it.
+# ---------------------------------------------------------------------------
+GRAPHIC_INJECTOR_BASE_ADDRESS = 0x427B6EF0
+GRAPHIC_INJECTOR_SLOT_STRIDE = 0xB114
+GRAPHIC_INJECTOR_HEADER_OFFSET = -0x102   # relative to slot base
+GRAPHIC_INJECTOR_PIXEL_OFFSET = 0x238     # relative to slot base
+
+# Built DDS files (128-byte header + full mip chain) are always exactly this
+# size for the fixed 256x128 DXT5 slot format - dds_builder.build_dds()
+# always produces this many bytes.
+GRAPHIC_INJECTOR_DDS_HEADER_SKIP = 0x80     # 128-byte DDS header, stripped before writing pixel data
+GRAPHIC_INJECTOR_EXPECTED_DDS_SIZE = 0xAB50  # 43856 bytes
+
+GRAPHIC_INJECTOR_SLOTS = ["Slot 1", "Slot 2", "Slot 3", "Slot 4"]
+
+# Fixed header blob written alongside the pixel data for each slot, always
+# on in the background (not user-toggleable - see edit_skater_tab.py). Same
+# bytes every time regardless of which DDS is injected - this is what tells
+# the game the resource is still a valid texture (format/dimensions/etc)
+# after the pixel data underneath it changes. Pulled directly from the
+# original tool's Helpers.cs (GraphicHeaders list). A slot left as None has
+# its header write skipped rather than failing the whole injection.
+#
+# NOTE: every slot should be 826 bytes (PIXEL_OFFSET - HEADER_OFFSET =
+# 0x238 - (-0x102) = 0x33A = 826), matching slots 2-4 below. Slot 1 here is
+# only 814 bytes (12 short) - carried over exactly as given; worth
+# double-checking against the source before relying on it.
+GRAPHIC_INJECTOR_HEADERS_HEX = [
+    "AD 08 68 74 74 70 3A 2F 2F 64 6F 77 6E 6C 6F 61 64 73 2E 73 6B 61 74 65 2E 6F 6E 6C 69 6E 65 2E 65 61 2E 63 6F 6D 2F 73 6B 61 74 65 33 2F 63 6F 6E 74 65 6E 74 2F 50 53 33 2F 4C 4F 47 4F 2F 30 31 34 38 2F 31 37 34 30 39 34 38 2F 38 39 32 30 34 34 30 35 2E 70 73 67 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 89 52 57 34 70 73 33 00 0D 0A 1A 0A 01 20 04 00 34 35 34 00 30 30 30 00 00 00 00 00 08 AC 21 BD 00 00 00 04 00 00 00 04 00 00 00 10 00 00 00 00 00 00 01 D8 00 00 00 C0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 00 10 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 AA D0 00 00 00 80 00 00 03 90 00 00 00 04 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 04 00 00 00 04 00 00 00 0C 00 00 00 1C 00 00 00 50 00 00 00 74 00 00 00 90 00 01 00 05 00 00 00 0A 00 00 00 0C 00 00 00 00 00 01 00 30 00 01 00 31 00 01 00 32 00 01 00 33 00 01 00 34 00 01 00 35 00 02 00 E8 00 EB 00 08 00 EB 00 0B 00 01 00 06 00 00 00 03 00 00 00 18 08 AC 21 BD FF B0 00 00 08 AC 21 BD 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 02 38 00 00 00 00 00 01 00 08 00 00 00 00 00 00 00 00 88 09 02 00 00 00 AA E4 01 00 00 80 00 01 00 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00 55 72 00 88 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 14 00 00 00 2C 00 00 00 00 00 00 00 40 00 00 00 2C 9B 0F 16 78 CD A8 D2 A6 C2 97 3D 90 AC 46 2E 4A 00 00 00 01 38 39 32 30 34 34 30 35 2E 54 65 78 74 75 72 65 00 00 00 00 00 00 00 19 00 00 00 04 00 00 00 00 00 00 00 00 00 00 AA D0 00 00 00 80 00 00 00 05 00 01 00 34 00 00 01 5C 00 00 00 00 00 00 00 28 00 00 00 04 00 00 00 07 00 02 00 E8 00 00 01 90 00 00 00 00 00 00 00 40 00 00 00 10 00 00 00 09 00 EB 00 0B 00 00 01 D0 00 00 00 00 00 00 00 08",  # Slot 1
+    "AD 08 68 74 74 70 3A 2F 2F 64 6F 77 6E 6C 6F 61 64 73 2E 73 6B 61 74 65 2E 6F 6E 6C 69 6E 65 2E 65 61 2E 63 6F 6D 2F 73 6B 61 74 65 33 2F 63 6F 6E 74 65 6E 74 2F 50 53 33 2F 4C 4F 47 4F 2F 30 31 34 38 2F 31 37 34 30 39 34 38 2F 38 39 34 31 33 33 37 31 2E 70 73 67 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 89 52 57 34 70 73 33 00 0D 0A 1A 0A 01 20 04 00 34 35 34 00 30 30 30 00 00 00 00 00 CD FC F3 91 00 00 00 04 00 00 00 04 00 00 00 10 00 00 00 00 00 00 01 D8 00 00 00 C0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 00 10 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 AA D0 00 00 00 80 00 00 03 90 00 00 00 04 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 04 00 00 00 04 00 00 00 0C 00 00 00 1C 00 00 00 50 00 00 00 74 00 00 00 90 00 01 00 05 00 00 00 0A 00 00 00 0C 00 00 00 00 00 01 00 30 00 01 00 31 00 01 00 32 00 01 00 33 00 01 00 34 00 01 00 35 00 02 00 E8 00 EB 00 08 00 EB 00 0B 00 01 00 06 00 00 00 03 00 00 00 18 CD FC F3 91 FF B0 00 00 CD FC F3 91 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 02 38 00 00 00 00 00 01 00 08 00 00 00 00 00 00 00 00 88 09 02 00 00 00 AA E4 01 00 00 80 00 01 00 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00 55 72 00 88 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 14 00 00 00 2C 00 00 00 00 00 00 00 40 00 00 00 2C 9B 0F 16 78 07 72 A2 B5 E0 11 95 04 AC 46 2E 4A 00 00 00 01 38 39 34 31 33 33 37 31 2E 54 65 78 74 75 72 65 00 00 00 00 00 00 00 19 00 00 00 04 00 00 00 00 00 00 00 00 00 00 AA D0 00 00 00 80 00 00 00 05 00 01 00 34 00 00 01 5C 00 00 00 00 00 00 00 28 00 00 00 04 00 00 00 07 00 02 00 E8 00 00 01 90 00 00 00 00 00 00 00 40 00 00 00 10 00 00 00 09 00 EB 00 0B 00 00 01 D0 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 00 00 00 00 00",  # Slot 2
+    "AD 08 68 74 74 70 3A 2F 2F 64 6F 77 6E 6C 6F 61 64 73 2E 73 6B 61 74 65 2E 6F 6E 6C 69 6E 65 2E 65 61 2E 63 6F 6D 2F 73 6B 61 74 65 33 2F 63 6F 6E 74 65 6E 74 2F 50 53 33 2F 4C 4F 47 4F 2F 30 31 34 38 2F 31 37 34 30 39 34 38 2F 38 39 34 33 32 35 30 38 2E 70 73 67 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 89 52 57 34 70 73 33 00 0D 0A 1A 0A 01 20 04 00 34 35 34 00 30 30 30 00 00 00 00 00 56 4D 7D BE 00 00 00 04 00 00 00 04 00 00 00 10 00 00 00 00 00 00 01 D8 00 00 00 C0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 00 10 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 AA D0 00 00 00 80 00 00 03 90 00 00 00 04 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 04 00 00 00 04 00 00 00 0C 00 00 00 1C 00 00 00 50 00 00 00 74 00 00 00 90 00 01 00 05 00 00 00 0A 00 00 00 0C 00 00 00 00 00 01 00 30 00 01 00 31 00 01 00 32 00 01 00 33 00 01 00 34 00 01 00 35 00 02 00 E8 00 EB 00 08 00 EB 00 0B 00 01 00 06 00 00 00 03 00 00 00 18 56 4D 7D BE FF B0 00 00 56 4D 7D BE 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 02 38 00 00 00 00 00 01 00 08 00 00 00 00 00 00 00 00 88 09 02 00 00 00 AA E4 01 00 00 80 00 01 00 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00 55 72 00 88 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 14 00 00 00 2C 00 00 00 00 00 00 00 40 00 00 00 2C 9B 0F 16 78 CB 14 20 53 EF 17 E5 8B AC 46 2E 4A 00 00 00 01 38 39 34 33 32 35 30 38 2E 54 65 78 74 75 72 65 00 00 00 00 00 00 00 19 00 00 00 04 00 00 00 00 00 00 00 00 00 00 AA D0 00 00 00 80 00 00 00 05 00 01 00 34 00 00 01 5C 00 00 00 00 00 00 00 28 00 00 00 04 00 00 00 07 00 02 00 E8 00 00 01 90 00 00 00 00 00 00 00 40 00 00 00 10 00 00 00 09 00 EB 00 0B 00 00 01 D0 00 00 00 00 00 00 00 08 00 00 00 10 00 00 00 08 00 EB 00 08",  # Slot 3
+    "AD 08 68 74 74 70 3A 2F 2F 64 6F 77 6E 6C 6F 61 64 73 2E 73 6B 61 74 65 2E 6F 6E 6C 69 6E 65 2E 65 61 2E 63 6F 6D 2F 73 6B 61 74 65 33 2F 63 6F 6E 74 65 6E 74 2F 50 53 33 2F 4C 4F 47 4F 2F 30 31 34 38 2F 31 37 34 30 39 34 38 2F 38 39 35 38 39 39 35 35 2E 70 73 67 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 89 52 57 34 70 73 33 00 0D 0A 1A 0A 01 20 04 00 34 35 34 00 30 30 30 00 00 00 00 00 42 36 0F 51 00 00 00 04 00 00 00 04 00 00 00 10 00 00 00 00 00 00 01 D8 00 00 00 C0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 00 10 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 AA D0 00 00 00 80 00 00 03 90 00 00 00 04 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 04 00 00 00 04 00 00 00 0C 00 00 00 1C 00 00 00 50 00 00 00 74 00 00 00 90 00 01 00 05 00 00 00 0A 00 00 00 0C 00 00 00 00 00 01 00 30 00 01 00 31 00 01 00 32 00 01 00 33 00 01 00 34 00 01 00 35 00 02 00 E8 00 EB 00 08 00 EB 00 0B 00 01 00 06 00 00 00 03 00 00 00 18 42 36 0F 51 FF B0 00 00 42 36 0F 51 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 38 00 00 02 38 00 00 00 00 00 01 00 08 00 00 00 00 00 00 00 00 88 09 02 00 00 00 AA E4 01 00 00 80 00 01 00 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00 55 72 00 88 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 14 00 00 00 2C 00 00 00 00 00 00 00 40 00 00 00 2C 9B 0F 16 78 50 61 97 ED D7 9A 6F 60 AC 46 2E 4A 00 00 00 01 38 39 35 38 39 39 35 35 2E 54 65 78 74 75 72 65 00 00 00 00 00 00 00 19 00 00 00 04 00 00 00 00 00 00 00 00 00 00 AA D0 00 00 00 80 00 00 00 05 00 01 00 34 00 00 01 5C 00 00 00 00 00 00 00 28 00 00 00 04 00 00 00 07 00 02 00 E8 00 00 01 90 00 00 00 00 00 00 00 40 00 00 00 10 00 00 00 09 00 EB 00 0B 00 00 01 D0 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 00 00 00 00 00",  # Slot 4
+]
+
+
+def graphic_injector_pixel_address(slot_index: int) -> int:
+    return GRAPHIC_INJECTOR_BASE_ADDRESS + slot_index * GRAPHIC_INJECTOR_SLOT_STRIDE + GRAPHIC_INJECTOR_PIXEL_OFFSET
+
+
+def graphic_injector_header_address(slot_index: int) -> int:
+    return GRAPHIC_INJECTOR_BASE_ADDRESS + slot_index * GRAPHIC_INJECTOR_SLOT_STRIDE + GRAPHIC_INJECTOR_HEADER_OFFSET

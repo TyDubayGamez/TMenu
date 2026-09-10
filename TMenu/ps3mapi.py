@@ -1,3 +1,43 @@
+"""
+ps3mapi.py
+==========
+A compact, pure-Python port of PS3ManagerAPI (PS3MAPI.dll) - the .NET client
+library that talks to the "PS3MAPI" server built into webMAN-MOD on a PS3.
+
+Original library: a Windows Forms .NET DLL using a text/FTP-style TCP
+protocol (commands like "PS3 GETFWVERSION", "MEMORY GET ...", "PASV", etc.)
+plus a binary data-socket for memory read/write, exactly like classic FTP
+PORT/PASV transfers.
+
+This module re-implements every command from the original DLL, but as one
+small, dependency-free file. GUI bits (ConnectDialog/AttachDialog/LogDialog,
+which were WinForms popups) are replaced with simple optional console
+prompts so the library works headless - everything else maps 1:1 to the
+original API surface.
+
+Quick start
+-----------
+    import ps3mapi
+
+    ps3 = ps3mapi.PS3MAPI()
+    ps3.ConnectTarget("192.168.1.50")        # or ConnectTarget(port=7887)
+    ps3.AttachProcess(0x00010001)            # or AttachProcess() to pick interactively
+
+    print(ps3.PS3.GetFirmwareVersion_Str())
+    ps3.PS3.Notify("Hello from Python!")
+
+    data = ps3.Process.Memory.Get(ps3.Process.Process_Pid, 0x00000000, 16)
+    ps3.Process.Memory.Set(ps3.Process.Process_Pid, 0x00000000, b"\\x00" * 16)
+
+    ps3.DisconnectTarget()
+
+Or, as a context manager:
+
+    with ps3mapi.PS3MAPI() as ps3:
+        ps3.ConnectTarget("192.168.1.50")
+        ps3.PS3.RingBuzzer(ps3mapi.BuzzerMode.Single)
+"""
+
 from __future__ import annotations
 
 import re
@@ -28,8 +68,8 @@ class ResponseCode:
     MemoryActionCompleted = 250
     MemoryActionPended = 350
 
-# enums (plain int constants, same values as the original C# enums)
 
+# ---- enums (plain int constants, same values as the original C# enums) ----
 
 class PowerFlags:
     ShutDown, QuickReboot, SoftReboot, HardReboot = range(4)
@@ -56,8 +96,10 @@ def _ver_str(value: int) -> str:
     h = format(value, "04X")
     return f"{h[1]}.{h[2]}.{h[3]}"
 
-# low level connection / protocol handler
 
+# --------------------------------------------------------------------------
+# Low level connection / protocol handler
+# --------------------------------------------------------------------------
 
 class _Connection:
     """Owns the sockets and implements the FTP-style text protocol."""
@@ -77,7 +119,7 @@ class _Connection:
     def is_connected(self) -> bool:
         return self.sock is not None
 
-    # connection lifecycle
+    # -- connection lifecycle --------------------------------------------
 
     def connect(self, ip: str | None = None, port: int | None = None) -> None:
         if ip is not None:
@@ -121,7 +163,7 @@ class _Connection:
                 pass
         self.sock = None
 
-    # raw protocol
+    # -- raw protocol ------------------------------------------------------
 
     def send_command(self, command: str) -> None:
         self.log += f"COMMAND: {command}\n"
@@ -240,8 +282,10 @@ class _Connection:
             raise PS3MAPIError(self.response)
         self._set_binary_mode(False)
 
-# high level command groups (mirror PS3MAPI.SERVER_CMD / CORE_CMD / etc.)
 
+# --------------------------------------------------------------------------
+# High level command groups (mirror PS3MAPI.SERVER_CMD / CORE_CMD / etc.)
+# --------------------------------------------------------------------------
 
 class _ServerCmd:
     def __init__(self, conn: _Connection):
@@ -425,8 +469,10 @@ class _VSHPluginsCmd:
         name, path = self._c.cmd(f"MODULE GETVSHPLUGINFO {slot}").split("|")
         return name, path
 
-# top level facade - this is what you actually import and use
 
+# --------------------------------------------------------------------------
+# Top level facade - this is what you actually `import` and use.
+# --------------------------------------------------------------------------
 
 class PS3MAPI:
     """Drop-in equivalent of the original PS3MAPI C# class.

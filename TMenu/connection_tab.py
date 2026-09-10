@@ -1,3 +1,34 @@
+"""
+connection_tab.py
+==================
+Builds the CONNECTION tab: an IP box, CONNECT, and DISCONNECT.
+
+CONNECT now does both steps in one click - it connects, then immediately
+looks for a running EBOOT.BIN process on the target and attaches to it. If
+EBOOT.BIN isn't running, the user is told to boot the game first instead of
+being handed a confusing error, but the connection itself is left up so they
+don't have to redo the socket handshake once the game is running - CONNECT
+can just be pressed again to retry the attach.
+
+DISCONNECT tears the whole session down (data socket, control socket, and
+resets state.connected / state.attached) so a clean CONNECT can be done
+again from scratch.
+
+The actual connect+attach steps (ConnectTarget / GetPidProcesses /
+AttachProcess) live in connection_core.py. They run on a background thread
+and report back through Qt signals so the UI never freezes while dialing in.
+
+Settings integration (optional `settings` arg):
+  - The IP box is pre-filled with settings.last_ip on launch.
+  - A successful connect saves that IP back to settings.last_ip.
+  - An "Auto-connect on startup" switch toggles settings.auto_connect. When
+    on, app.py calls the returned auto_connect() helper right after building
+    the window so a returning user is connected (and attached) automatically.
+
+The builder returns a dict of handles app.py needs: the group widget plus
+`connect` / `disconnect` / `auto_connect` callables it can fire programmatically.
+"""
+
 import threading
 
 from PySide6.QtCore import QObject, Signal, Qt
@@ -45,7 +76,7 @@ def build(parent_tab, win, state, settings=None):
     for w in (ip_box, connect_btn, disconnect_btn):
         group.add(w)
 
-    # Auto-connect switch
+    # -- Auto-connect switch --------------------------------------------
     auto_switch = None
     if settings is not None:
         switch_row = QWidget(group)
@@ -69,7 +100,7 @@ def build(parent_tab, win, state, settings=None):
 
     group.add(status_lbl)
 
-    # background work (runs off the GUI thread)
+    # -- background work (runs off the GUI thread) ------------------------
 
     def do_connect():
         ip = ip_box.text().strip()
@@ -89,7 +120,7 @@ def build(parent_tab, win, state, settings=None):
         state.attached_name = ""
         signals.disconnect_result.emit(True, "Disconnected.")
 
-    # UI callbacks
+    # -- UI callbacks -------------------------------------------------------
 
     def on_connect_clicked():
         status_lbl.setText("Connecting...")
@@ -116,7 +147,8 @@ def build(parent_tab, win, state, settings=None):
     signals.disconnect_result.connect(on_disconnect_result)
 
     def auto_connect():
-        # runs at startup if auto_connect is on and there's a saved IP
+        """Fire the startup auto-connect: only runs if the setting is on and a
+        last_ip exists. Connects, then attaches, same as a manual CONNECT click."""
         if settings is None or not settings.auto_connect:
             return
         if not ip_box.text().strip():

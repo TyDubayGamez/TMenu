@@ -1,3 +1,12 @@
+"""
+save_tab.py
+============
+Builds the top-level SAVE tab as two subtabs: DIFFICULTY (a single dropdown
+that writes the same 00-03 code to both the saveable and active difficulty
+addresses at once) and STATS (currently just Board Sales, a plain int field
+built with field_widgets.py like ADJUSTABLES/VISUALS use for floats).
+"""
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout
 

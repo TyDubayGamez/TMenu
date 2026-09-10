@@ -1,3 +1,26 @@
+"""
+recipe_handler.py
+==================
+Straight port of the RPCS3 Character Editor's RecipeHandler (Asset.cs,
+AssetList.cs, Model.cs, Texture.cs, RGBBlock.cs, GraphicBlock.cs, Recipe.cs)
+- same binary format, same field layout, same quirks. It exists purely to
+support the EXTRA subtab's "Apply Low Poly" and "Fix Crash" mods, which
+both need to parse a skater's recipe blob, tweak the model list, and
+re-serialize the *entire* recipe byte-for-byte so nothing else in it gets
+corrupted on write-back.
+
+Every class below has a `.parse(data, offset) -> (obj, next_offset)`
+classmethod and a `.get_bytes()` instance method, mirroring the C# type's
+constructor-from-bytes and GetBytes(). The overall Recipe.parse/get_bytes
+round-trip is expected to reproduce the original bytes exactly for any
+field that isn't deliberately being changed - if that ever stops being
+true for some recipe, treat it as a parser bug rather than "close enough".
+
+Nothing here talks to PS3MAPI directly - callers read/write the raw bytes
+themselves (see edit_skater_tab.py's Extra subtab) and just hand this
+module the blob.
+"""
+
 import struct
 
 
@@ -167,8 +190,13 @@ class GraphicBlock:
 
 
 class Recipe:
-    # full recipe blob: header -> asset lists -> gender + RGB blocks ->
-    # graphic blocks -> a trailing tail of bytes kept verbatim on write-back
+    """
+    Full recipe blob: header -> asset lists (with nested models/textures) ->
+    gender + RGB blocks -> graphic blocks -> a trailing tail of bytes the
+    original tool never fully reverse-engineered ("bytesAfter" in Recipe.cs).
+    That tail is kept verbatim on write-back rather than reconstructed.
+    """
+
     def __init__(self, name="", recipe_type=0, gender=0):
         self.name = name
         self.recipe_type = recipe_type
@@ -241,11 +269,16 @@ class Recipe:
         out += self._tail
         return out
 
-    # the two Extra-subtab mods
+    # -- the two Extra-subtab mods ------------------------------------------
 
     def apply_low_poly(self) -> int:
-        # for every asset with a low-LOD model, copies its ArenaID + ModelName
-        # onto Models[0]. returns how many assets were changed
+        """
+        For every asset that has a low-LOD model (Models[1]), copy its
+        ArenaID + ModelName onto Models[0] - same fields the RPCS3 tool
+        swaps, nothing else (MaterialID/Textures on Models[0] are left
+        alone). Both list entries stay in place. Returns how many assets
+        were changed.
+        """
         changed = 0
         for asset_list in self.asset_lists:
             for asset in asset_list.assets:
@@ -256,7 +289,7 @@ class Recipe:
         return changed
 
     def fix_crash(self) -> int:
-        # removes the low-LOD model (Models[1]) from every asset that has one
+        """Remove the low-LOD model (Models[1]) from every asset that has one."""
         changed = 0
         for asset_list in self.asset_lists:
             for asset in asset_list.assets:

@@ -1,3 +1,27 @@
+"""
+park_tab.py
+===========
+Builds the top-level PARK tab as its own row of subtabs, using the same
+MetroTabControl-as-subtabs pattern edit_skater_tab.py / misc_tab.py use.
+Right now it holds a single RGB subtab, converted from the standalone
+"S3 Park RGB" C# tool.
+
+PARK_RGB_BASE_ADDRESS is an 8-digit PS3 address, same style as the rest of
+this codebase - the original C# tool just wrote it as a decimal ulong
+(1088951392) with a hex comment (40E81460); this is that same value,
+written as the hex literal instead so it reads the same way every other
+address in this tool does. Nothing was stripped/converted - it was already
+8 digits.
+
+Grid math (unchanged from the C# tool): each of the 8x8 grid's cells is 16
+bytes (12 bytes of R/G/B float data + 4 bytes padding/unused), and each row
+is 8 cells wide (128 bytes), so:
+
+    address = PARK_RGB_BASE_ADDRESS + (row_index * 128) + (col_index * 16)
+
+where row_index/col_index are 0-based (Row 1/Column 1 -> index 0).
+"""
+
 import struct
 
 from PySide6.QtCore import Qt
@@ -16,7 +40,6 @@ PARK_RGB_COLS = 8
 
 
 def park_rgb_address(row_index: int, col_index: int) -> int:
-    # each grid cell is 16 bytes, each row is 128 bytes (8 cells wide)
     return PARK_RGB_BASE_ADDRESS + (row_index * PARK_RGB_ROW_STRIDE) + (col_index * PARK_RGB_COL_STRIDE)
 
 

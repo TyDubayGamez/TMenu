@@ -1,3 +1,24 @@
+"""
+visuals_tab.py
+================
+Builds the top-level VISUALS tab as six subtabs: TOGGLEABLES (the on/off
+visual mods that used to live under TOGGLEABLES>VISUALS before being split
+out into their own top-level tab), ADJUSTABLES (Transparency/FoV plus
+Skater Color), ENVIRONMENT, WORLD (Fog Color/Density/Distance), HUD (Score
+Multiplier, Exposure, and the Glitchy Text toggle - custom-built below since
+none of the three are a plain single-field grid), and SCREEN. Same
+MetroTabControl-as-subtabs pattern toggleables_tab.py / edit_skater_tab.py
+use.
+
+ADJUSTABLES/ENVIRONMENT/WORLD/SCREEN's plain float fields are built by
+field_widgets.build_float_grid against visuals_data.py; ADJUSTABLES' Skater
+Color and WORLD's Fog Color are built by field_widgets.build_rgb_field_group
+instead (a 12-byte/3-float RGB value isn't a single field). A subtab that
+holds more than one group (WORLD, and now ADJUSTABLES/HUD too) shares one
+QVBoxLayout across all of them via `parent_layout` - see those two
+functions' docstrings for why.
+"""
+
 import math
 import struct
 
@@ -18,8 +39,11 @@ from visuals_data import (
 
 
 def _build_score_multiplier(tab, state, parent_layout):
-    # one base value (e.g. 30) gets written as-is to ScoreX1, doubled to
-    # ScoreX2, tripled to ScoreX3. GET reads ScoreX1 back as the base.
+    """One base value the person types in (e.g. 30) gets written as-is to
+    ScoreX1, doubled to ScoreX2, and tripled to ScoreX3 (30/60/90). GET
+    reads ScoreX1 back as the base. Added into HUD's shared layout by
+    _build_hud below, same `parent_layout` convention as
+    field_widgets.build_float_grid/build_rgb_field_group."""
     group = MetroGroupBox(tab, title="Score Multiplier")
     group.setFixedWidth(250)
     parent_layout.addWidget(group, alignment=Qt.AlignHCenter)
@@ -76,7 +100,9 @@ def _build_score_multiplier(tab, state, parent_layout):
     set_btn.clicked.connect(on_set_clicked)
 
     def _refresh_on_attach():
-        # only prefills if the value isn't the vanilla default (1.0)
+        # Same "only prefill if it isn't the vanilla default" rule as the
+        # plain field grids (field_widgets.py) - base 1.0 is the untouched
+        # state, anything else means someone's already set a multiplier.
         raw = bytes(state.ps3.Process.Memory.Get(state.pid, SCORE_X1_ADDRESS, 4))
         value = struct.unpack(">f", raw)[0]
         if not math.isclose(value, SCORE_MULTIPLIER_DEFAULT, rel_tol=1e-4, abs_tol=1e-4):
@@ -110,8 +136,12 @@ def _build_world(tab, win, state):
 
 
 def _build_hud(tab, state):
-    # score multiplier + exposure (plain float field) + glitchy text
-    # (plain on/off toggle), sharing one subtab since none is a plain grid
+    """Score Multiplier - one base value the person types in (e.g. 30) gets
+    written as-is to ScoreX1, doubled to ScoreX2, and tripled to ScoreX3
+    (30/60/90). Exposure is a plain single float field. Glitchy Text is a
+    plain on/off toggle (toggleables_data.HUD_TOGGLES) - all three share
+    this one subtab/layout since none is a plain multi-field grid on its
+    own."""
     layout = QVBoxLayout(tab)
     layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
     layout.setContentsMargins(0, 20, 0, 0)

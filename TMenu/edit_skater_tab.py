@@ -1,3 +1,36 @@
+"""
+edit_skater_tab.py
+===================
+Builds the EDIT SKATER tab as its own row of subtabs (RGB / BODY MODS /
+STYLE / RECIPES / CLOTHING LOCK / GRAPHICS / EXTRA / TEAM NAMES), using the
+same MetroTabControl the top-level tabs use, just smaller - same underline
+animation, same look, scaled down.
+
+_populate_subtabs() is the single place that lists what belongs under EDIT
+SKATER and builds it into the normal inline subtab control.
+
+Subtabs are built once at startup and never torn down, so switching away to
+another top-level tab and back doesn't reset anything - whichever subtab you
+were last on is still selected. That state only lives in memory for this run
+though; nothing is saved to disk, so a fresh launch always starts back on
+the first subtab (RGB).
+
+RGB / Body Mods / Style / Clothing Lock / Extra each get their own
+"Skater 1-5" dropdown so you pick which of the 5 skater slots you're
+editing. Gestures (in Style) and the Extra subtab's Invisible/Set Other
+toggles are NOT per-skater in the underlying memory layout - there's only
+one set of those addresses, and in-game they always apply to whichever
+skater is currently being controlled/edited. That's just how the game
+stores them, so there's nothing to expose to the user about it - the
+dropdowns just work (or, for Extra, are simply not consulted for those
+particular mods).
+
+CLOTHING LOCK only ever keeps one clothing item locked at a time (across
+all skaters) - picking a different item/skater or hitting the toggle again
+replaces/clears whichever lock was previously active, it never stacks.
+"""
+
+import os
 import struct
 import threading
 
@@ -10,6 +43,7 @@ from TsUI_qt import (
 )
 from color_picker import open_color_picker
 from app_paths import export_dir, export_save_path
+from dds_builder import build_dds, FIT_STRETCH, FIT_LETTERBOX, FIT_COVER
 
 from edit_skater_data import (
     SKATERS, GESTURES, GESTURE_OPTIONS, RGB_PARTS, BODY_MOD_FIELDS,
@@ -26,15 +60,30 @@ from edit_skater_data import (
     NAME_FIELDS, NAME_ICON_SKATE, NAME_ICON_BOLT,
     GRAPHICS_SPOOFER_USER_ID_ADDRESS,
     GRAPHICS_SLOTS, GRAPHICS_FIELD_OFFSETS, graphics_slot_address,
+    GRAPHIC_INJECTOR_SLOTS, GRAPHIC_INJECTOR_HEADERS_HEX,
+    GRAPHIC_INJECTOR_DDS_HEADER_SKIP, GRAPHIC_INJECTOR_EXPECTED_DDS_SIZE,
+    graphic_injector_pixel_address, graphic_injector_header_address,
 )
 
 SUBTAB_FONT = ("Segoe UI", 9)
 
 
 def _populate_subtabs(subtabs, win, state):
-    # registers every EDIT SKATER subtab and builds its content. shared by
-    # the normal inline tab control (build(), below) and the VIEW ALL gallery popup
-    # RGB and GRAPHICS are each two separate boxes shown together via add_multi
+    """
+    Registers every EDIT SKATER subtab into `subtabs` and builds all their
+    content. Shared by the normal inline tab control (build(), below) and
+    the VIEW ALL gallery popup, so there's exactly one place that lists what
+    belongs under EDIT SKATER - the gallery just calls this again against a
+    second, freshly-made MetroTabControl rather than trying to share widgets
+    with the inline one.
+    """
+    # RGB and GRAPHICS are each really two independently-bordered groups
+    # shown together, not one group - add_multi keeps them paired in
+    # compact mode but lets the gallery's masonry packing treat them as two
+    # separate boxes instead of one bounding box sized to whichever is
+    # taller (see MetroTabControl.add_multi's docstring). Registered in a
+    # fixed left-to-right order so the tab bar (and the gallery) always
+    # lists things the same way.
     colors_frame, rgb_swap_frame = subtabs.add_multi("RGB", 2)
     subtabs.add("BODY MODS")
     subtabs.add("STYLE")
@@ -68,8 +117,8 @@ def build(parent_tab, win, state):
 
     return subtabs
 
-# small shared helpers
 
+# -- small shared helpers ---------------------------------------------------
 
 def _skater_dropdown(parent):
     return MetroDropdown(parent, items=[f"Skater {i}" for i in range(1, 6)], width=200)
@@ -85,11 +134,39 @@ def _status_label(group):
     lbl.setWordWrap(True)
     return lbl
 
-# RGB
 
+def _unique_output_path(folder: str, base_name: str, ext: str) -> str:
+    """<folder>/<base_name><ext>, auto-numbered to the next free name if
+    that already exists - so converting the same source image twice never
+    clobbers a previous DDS Outputs file."""
+    candidate = os.path.join(folder, f"{base_name}{ext}")
+    if not os.path.exists(candidate):
+        return candidate
+    n = 1
+    while True:
+        candidate = os.path.join(folder, f"{base_name} ({n}){ext}")
+        if not os.path.exists(candidate):
+            return candidate
+        n += 1
+
+
+def _hex_str_to_bytes(hex_str: str) -> bytes:
+    return bytes(int(b, 16) for b in hex_str.split())
+
+
+# ---------------------------------------------------------------------------
+# RGB
+# ---------------------------------------------------------------------------
 
 def _build_rgb(colors_tab, swap_tab, win, state):
-    # Colors and RGB Swapping each get their own frame via add_multi("RGB", 2)
+    """
+    Colors and RGB Swapping used to share one subtab frame via an internal
+    row layout - now they're each given their own independent frame (see
+    build()'s add_multi("RGB", 2) call) so flat mode's masonry packing can
+    treat them as two separate boxes instead of one bounding box sized to
+    whichever was taller. Compact mode still shows them side by side exactly
+    as before - add_multi handles that automatically.
+    """
     _build_colors(colors_tab, win, state)
     _build_rgb_swap(swap_tab, state)
 
@@ -201,8 +278,13 @@ def _build_colors(tab, win, state):
 
 
 def _build_rgb_swap(tab, state):
-    # points one part's color/swatch reference at another asset's swatch -
-    # writes a 16-byte reference, not a float, separate from the Colors group
+    """
+    RGB Swapping - points one part's color/swatch reference at another
+    asset's swatch, the same mechanic the RPCS3 tool uses (e.g. making the
+    sock RGB become the black custom board's RGB). This writes a 16-byte
+    reference, not a float, so it's a completely separate write from the
+    Colors group even though they share the RGB subtab.
+    """
     layout = QVBoxLayout(tab)
     layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
     layout.setContentsMargins(0, 20, 0, 0)
@@ -258,8 +340,10 @@ def _build_rgb_swap(tab, state):
 
     swap_btn.clicked.connect(on_swap_clicked)
 
-# Body Mods
 
+# ---------------------------------------------------------------------------
+# Body Mods
+# ---------------------------------------------------------------------------
 
 def _build_body_mods(tab, state):
     layout = QVBoxLayout(tab)
@@ -331,9 +415,19 @@ def _build_body_mods(tab, state):
     set_btn.clicked.connect(on_set_clicked)
     get_btn.clicked.connect(on_get_clicked)
 
-# Style - Stance/Style/Posture/Trucks Tightness/Wheels Hardness + Gestures.
-# Every field gets its own SET + GET pair - nothing is written until SET is
-# clicked. Laid out as a 3-column grid with a GET ALL/SET ALL pair at the bottom.
+
+# ---------------------------------------------------------------------------
+# Style - Stance / Style / Posture / Trucks Tightness / Wheels Hardness +
+# Gestures. Every field gets its own SET + GET pair instead of writing to
+# memory the instant a dropdown changes - picking a value is "safe", nothing
+# is actually poked until you click SET, and GET reads the field's current
+# value back into its dropdown/box. SET and GET sit side by side under each
+# field, together exactly as wide as the dropdown/value box above them.
+# Laid out as a 3-column grid instead of one long vertical column so the tab
+# doesn't turn into a scroll-fest, with the Skater 1-5 selector pinned to
+# the top-left above the grid and a GET ALL / SET ALL pair spread across the
+# bottom for touching every field on the tab at once.
+# ---------------------------------------------------------------------------
 
 _STYLE_BTN_HEIGHT = 30
 _STYLE_FIELD_WIDTH = 180
@@ -350,7 +444,7 @@ def _build_style(tab, state):
     group.setFixedWidth(620)
     layout.addWidget(group, alignment=Qt.AlignHCenter)
 
-    # Skater selector, top-left of the group
+    # -- Skater selector, top-left of the group ------------------------
     skater_row = QWidget(group)
     skater_row.setStyleSheet("background: transparent;")
     skater_row_layout = QHBoxLayout(skater_row)
@@ -362,7 +456,7 @@ def _build_style(tab, state):
 
     status_lbl = _status_label(group)  # added to the group last, shared by every field below
 
-    # 3-column grid of fields
+    # -- 3-column grid of fields -----------------------------------------
     grid_holder = QWidget(group)
     grid_holder.setStyleSheet("background: transparent;")
     grid = QGridLayout(grid_holder)
@@ -384,7 +478,10 @@ def _build_style(tab, state):
         return cell, cell_layout
 
     def make_set_get_row(cell, cell_layout):
-        # GET + SET side by side, as wide as the field above
+        """A GET + SET pair side by side, together as wide as the field
+        above. GET goes on the left since reading a value in feels like a
+        starting point, SET on the right since committing a value feels
+        like an "enter"/confirm action."""
         btn_row = QWidget(cell)
         btn_row.setStyleSheet("background: transparent;")
         btn_row_layout = QHBoxLayout(btn_row)
@@ -567,7 +664,7 @@ def _build_style(tab, state):
     add_gesture_setting(2, 1, "Gesture 3")
     add_gesture_setting(2, 2, "Gesture 4")
 
-    # GET ALL / SET ALL, spread left-to-right across the bottom
+    # -- GET ALL / SET ALL, spread left-to-right across the bottom --------
     all_row = QWidget(group)
     all_row.setStyleSheet("background: transparent;")
     all_row_layout = QHBoxLayout(all_row)
@@ -606,10 +703,14 @@ def _build_style(tab, state):
 
     group.add(status_lbl)
 
-# Recipes - export a skater's full recipe blob to a .recipe file, or inject
-# one back in. The memory read/write runs on a background thread and
-# reports back through Qt signals, same as CONNECT/ATTACH.
 
+# ---------------------------------------------------------------------------
+# Recipes - export a skater's full recipe blob to a .recipe file (via a Save
+# dialog defaulted into the recipes/ folder next to the app), or inject one
+# back in. The socket read/write is the same kind of blocking I/O as
+# CONNECT/ATTACH, so it runs on a background thread and reports back through
+# Qt signals; the file dialogs themselves run on the GUI thread as usual.
+# ---------------------------------------------------------------------------
 
 class _RecipeSignals(QObject):
     export_result = Signal(bool, str)
@@ -645,7 +746,7 @@ def _build_recipes(tab, state):
     status_lbl = _status_label(group)
     group.add(status_lbl)
 
-    # background work (runs off the GUI thread)
+    # -- background work (runs off the GUI thread) ------------------------
 
     def do_export(path, skater):
         addr = RECIPE_ADDRESSES[skater]
@@ -667,7 +768,7 @@ def _build_recipes(tab, state):
         except Exception as e:
             signals.import_result.emit(False, str(e))
 
-    # UI callbacks
+    # -- UI callbacks -------------------------------------------------------
 
     def on_export_clicked():
         if not state.is_ready():
@@ -711,10 +812,14 @@ def _build_recipes(tab, state):
     signals.export_result.connect(on_export_result)
     signals.import_result.connect(on_import_result)
 
-# Clothing Lock - re-writes a snapshot of one clothing item's bytes every
-# 500ms so the game can't change it. Only one item can be locked at a time -
-# switching skater/item or hitting the toggle again replaces or clears it.
 
+# ---------------------------------------------------------------------------
+# Clothing Lock - RTM (real-time-memory) lock, re-writes a snapshot of one
+# clothing item's bytes every 500ms so the game can't change it. Only one
+# item (across all 5 skaters) can be locked at a time - picking a different
+# skater/item, or hitting the toggle again, always replaces or clears
+# whichever lock was previously running rather than stacking.
+# ---------------------------------------------------------------------------
 
 def _build_clothing_lock(tab, win, state):
     layout = QVBoxLayout(tab)
@@ -747,7 +852,7 @@ def _build_clothing_lock(tab, win, state):
     status_lbl = _status_label(group)
     group.add(status_lbl)
 
-    # lock state - only ever describes ONE active lock at a time
+    # -- lock state - only ever describes ONE active lock at a time --------
     lock = {"active": False, "skater": None, "item": None, "snapshot": None}
 
     timer = QTimer(win)
@@ -782,7 +887,9 @@ def _build_clothing_lock(tab, win, state):
         item = item_dropdown.currentText()
         addr = clothing_lock_address(skater, item)
         try:
-            # snapshots whatever is currently equipped, gets continuously re-written
+            # Snapshot whatever is currently equipped - this is what gets
+            # continuously re-written, same as the RPCS3 tool grabbing
+            # prevHat/prevShirt/etc. the moment the checkbox is ticked.
             snapshot = state.ps3.Process.Memory.Get(state.pid, addr, 16)
         except Exception as e:
             lock_switch.setChecked(False)
@@ -797,8 +904,9 @@ def _build_clothing_lock(tab, win, state):
 
     lock_switch.toggled.connect(on_switch_toggled)
 
-    # changing skater or item while a lock is running turns it off instead
-    # of silently locking the new one
+    # Changing skater or item while a lock is running just turns it off -
+    # forces you to re-arm the switch (and grab a fresh snapshot) instead of
+    # silently locking a different item than the one you were looking at.
     def on_selection_changed(_=None):
         if lock["active"]:
             lock["active"] = False
@@ -808,16 +916,29 @@ def _build_clothing_lock(tab, win, state):
     skater_dd.currentTextChanged.connect(on_selection_changed)
     item_dropdown.currentTextChanged.connect(on_selection_changed)
 
+
+# ---------------------------------------------------------------------------
 # Graphics - Graphics Spoofer, ported from the standalone "Graphics Spoofer
-# PS3" tool. Not per-skater, just a User ID field + SPOOF button.
+# PS3" tool. That tool did its own Connect/Attach (its Form1 had its own
+# PS3MAPI instance) - here we just use the menu's existing connection, so
+# all that's left is the User ID field + SPOOF button. Not per-skater, no
+# skater dropdown.
+# ---------------------------------------------------------------------------
 
-# Graphics Spoofer (left, not per-skater) plus a Graphic Editor (right) for
-# the rotation/scale/x/y of each skater's 5 custom graphic slots - pick the
-# skater and graphic, GET reads its 16 bytes into the four fields, SET writes them back.
-
+# ---------------------------------------------------------------------------
+# Graphics - Graphics Spoofer (left) ported from the standalone "Graphics
+# Spoofer PS3" tool, plus a Graphic Editor (right) for the rotation/scale/
+# x/y of each skater's 5 custom graphic slots, from Skate_3_Skaters.CT.
+# Spoofer isn't per-skater (that tool had its own single literal address);
+# the editor is - pick the skater, then which of their 5 graphics, then
+# GET to read its current 16 bytes into the four fields, or SET to write
+# whatever's in the four fields back as one 16-byte block.
+# ---------------------------------------------------------------------------
 
 def _build_graphics(spoofer_tab, editor_tab, state):
-    # Graphics Spoofer and Graphic Editor each get their own frame via add_multi
+    """Graphics Spoofer and Graphic Editor - see _build_rgb's docstring for
+    why these are two independent frames (from add_multi) instead of one
+    subtab frame with an internal row layout."""
     _build_graphics_spoofer(spoofer_tab, state)
     _build_graphic_editor(editor_tab, state)
 
@@ -860,6 +981,137 @@ def _build_graphics_spoofer(tab, state):
             status_lbl.setText(str(e))
 
     spoof_btn.clicked.connect(on_spoof_clicked)
+
+    _build_graphic_injector(tab, layout, state)
+
+
+# Crop Type dropdown options -> dds_builder fit modes. Order here is also
+# the dropdown order; "Fit" is the default (matches the standalone
+# converter tool's default).
+_CROP_TYPES = {
+    "Stretch": FIT_STRETCH,
+    "Fit (letterbox)": FIT_LETTERBOX,
+    "Fill (crop to cover)": FIT_COVER,
+}
+
+_INJECTOR_INPUT_FILTER = "Images (*.png *.jpg *.jpeg *.bmp *.tga *.tif *.tiff *.webp)"
+
+
+def _build_graphic_injector(tab, layout, state):
+    """Custom Graphic Injector - pick one of the 4 custom graphic slots and
+    a crop type, browse for a source image, and Inject converts it to the
+    game's fixed 256x128 DXT5 DDS format and writes it straight into that
+    slot's memory. The converted DDS is also dropped into a DDS Outputs
+    folder next to the exe (auto-numbered if a file with that name already
+    exists there) purely so the user has a copy - nothing has to be
+    manually saved for the injection itself to work.
+
+    The fixed header blob for the selected slot is always written right
+    after the pixel data - that isn't a user-facing option (unlike the
+    standalone test tool's checkbox), it's just always on.
+
+    Shares the Graphics Spoofer group's own QVBoxLayout (passed in as
+    `layout`) rather than installing a second layout on the same `tab`
+    widget - a widget can only ever have one layout.
+    """
+    group = MetroGroupBox(tab, title="Custom Graphic Injector")
+    group.setFixedWidth(250)
+    layout.addWidget(group, alignment=Qt.AlignHCenter)
+
+    slot_dropdown = MetroDropdown(group, items=GRAPHIC_INJECTOR_SLOTS, width=200)
+    group.add(slot_dropdown)
+
+    crop_dropdown = MetroDropdown(group, items=list(_CROP_TYPES.keys()), width=200)
+    crop_dropdown.setCurrentIndex(1)  # default: Fit (letterbox)
+    group.add(crop_dropdown)
+
+    browse_btn = MetroButton(group, text="Browse...", width=200)
+    group.add(browse_btn)
+
+    path_lbl = MetroLabel(group, text="No file selected.")
+    path_lbl.setAlignment(Qt.AlignCenter)
+    path_lbl.setWordWrap(True)
+    group.add(path_lbl)
+
+    inject_btn = MetroButton(group, text="Inject", width=200)
+    group.add(inject_btn)
+
+    status_lbl = _status_label(group)
+    group.add(status_lbl)
+
+    selected_path = {"value": ""}
+
+    def on_browse_clicked():
+        path, _ = QFileDialog.getOpenFileName(group, "Select Graphic", "", _INJECTOR_INPUT_FILTER)
+        if path:
+            selected_path["value"] = path
+            path_lbl.setText(os.path.basename(path))
+
+    def on_inject_clicked():
+        if not state.is_ready():
+            status_lbl.setText("Connect and attach first.")
+            return
+        src_path = selected_path["value"]
+        if not src_path:
+            status_lbl.setText("Choose an image first.")
+            return
+
+        slot_index = slot_dropdown.currentIndex()
+        fit_mode = _CROP_TYPES[crop_dropdown.currentText()]
+
+        try:
+            status_lbl.setText("Converting...")
+            QApplication.processEvents()
+            dds_data = build_dds(src_path, fit_mode=fit_mode)
+        except Exception as e:
+            status_lbl.setText(f"Conversion failed: {e}")
+            return
+
+        if len(dds_data) != GRAPHIC_INJECTOR_EXPECTED_DDS_SIZE:
+            status_lbl.setText(
+                f"Unexpected DDS size ({len(dds_data)} bytes) - aborted."
+            )
+            return
+
+        try:
+            out_folder = export_dir("DDS Outputs")
+            base_name = os.path.splitext(os.path.basename(src_path))[0]
+            out_path = _unique_output_path(out_folder, base_name, ".dds")
+            with open(out_path, "wb") as f:
+                f.write(dds_data)
+        except Exception as e:
+            status_lbl.setText(f"Could not save to DDS Outputs: {e}")
+            return
+
+        pixel_data = dds_data[GRAPHIC_INJECTOR_DDS_HEADER_SKIP:]
+        pixel_addr = graphic_injector_pixel_address(slot_index)
+        header_addr = graphic_injector_header_address(slot_index)
+
+        try:
+            status_lbl.setText(f"Writing {len(pixel_data)} bytes to slot...")
+            QApplication.processEvents()
+            state.ps3.Process.Memory.Set(state.pid, pixel_addr, pixel_data)
+
+            # Fixed header blob write is always on in the background - not
+            # a user-facing toggle.
+            header_hex = GRAPHIC_INJECTOR_HEADERS_HEX[slot_index]
+            if header_hex:
+                header_bytes = _hex_str_to_bytes(header_hex)
+                state.ps3.Process.Memory.Set(state.pid, header_addr, header_bytes)
+                status_lbl.setText(
+                    f"Injected into {slot_dropdown.currentText()}. Saved as "
+                    f"{os.path.basename(out_path)}."
+                )
+            else:
+                status_lbl.setText(
+                    f"Injected into {slot_dropdown.currentText()} (no header blob "
+                    f"configured for this slot yet). Saved as {os.path.basename(out_path)}."
+                )
+        except Exception as e:
+            status_lbl.setText(str(e))
+
+    browse_btn.clicked.connect(on_browse_clicked)
+    inject_btn.clicked.connect(on_inject_clicked)
 
 
 def _build_graphic_editor(tab, state):
@@ -956,10 +1208,15 @@ def _build_graphic_editor(tab, state):
     get_btn.clicked.connect(on_get_clicked)
     set_btn.clicked.connect(on_set_clicked)
 
-# Extra - invisible parts (own dropdown + Apply) next to Gender (own
-# dropdown + Apply), two independent controls. Gender is per-skater,
-# invisible toggles ignore the skater dropdown.
 
+# ---------------------------------------------------------------------------
+# Extra - invisible parts (own dropdown + Apply) side by side with Gender
+# (own dropdown + Apply). They used to share one dropdown/button (Gender
+# swapped in as a value of the invisible-mod dropdown); now they're two
+# independent controls that just happen to sit next to each other. Gender
+# IS per-skater (unlike the invisible toggles), so it still reads the
+# skater dropdown at the top; the invisible toggles ignore it.
+# ---------------------------------------------------------------------------
 
 def _build_extra(tab, state):
     layout = QVBoxLayout(tab)
@@ -981,7 +1238,7 @@ def _build_extra(tab, state):
     row_layout.setSpacing(16)
     group.add(row)
 
-    # Invisible parts column
+    # -- Invisible parts column --------------------------------------
     invisible_col = QWidget(row)
     invisible_col.setStyleSheet("background: transparent;")
     invisible_layout = QVBoxLayout(invisible_col)
@@ -995,7 +1252,7 @@ def _build_extra(tab, state):
     invisible_apply_btn = MetroButton(invisible_col, text="APPLY", width=190)
     invisible_layout.addWidget(invisible_apply_btn)
 
-    # Gender column
+    # -- Gender column --------------------------------------------------
     gender_col = QWidget(row)
     gender_col.setStyleSheet("background: transparent;")
     gender_layout = QVBoxLayout(gender_col)
@@ -1009,7 +1266,10 @@ def _build_extra(tab, state):
     gender_apply_btn = MetroButton(gender_col, text="APPLY", width=190)
     gender_layout.addWidget(gender_apply_btn)
 
-    # Other Clothing (Dr Pepper set) - per-skater, reuses the skater_dd dropdown at the top
+    # -- Other Clothing (Dr Pepper set) ----------------------------------
+    # Per-skater, but reuses the single skater_dd dropdown at the top of
+    # this tab (same one Gender uses) rather than having its own - keeps
+    # the tab down to one skater selector total.
     other_group = MetroGroupBox(tab, title="Other Clothing")
     other_group.setFixedWidth(420)
     layout.addWidget(other_group, alignment=Qt.AlignHCenter)
@@ -1047,8 +1307,11 @@ def _build_extra(tab, state):
     other_status_lbl = _status_label(other_group)
     other_group.add(other_status_lbl)
 
-    # Missing Texture - per-skater, forces an invalid material so a slot
-    # renders as missing. Refuses to touch a slot with nothing equipped.
+    # -- Missing Texture --------------------------------------------------
+    # Per-skater, reuses the same shared skater_dd as Gender/Other Clothing.
+    # Forces an invalid material on a slot so the game renders it as a
+    # missing texture. Refuses to touch a slot the skater isn't wearing
+    # anything in (checked by reading it first).
     mt_group = MetroGroupBox(tab, title="Missing Texture")
     mt_group.setFixedWidth(420)
     layout.addWidget(mt_group, alignment=Qt.AlignHCenter)
@@ -1156,12 +1419,15 @@ def _build_extra(tab, state):
     gender_apply_btn.clicked.connect(on_gender_apply_clicked)
     other_apply_btn.clicked.connect(on_other_apply_clicked)
 
-# Team Names - Team Name + Player 1-5, fixed-length zero-terminated ASCII
-# strings, not per-skater.
 
+# ---------------------------------------------------------------------------
+# Team Names - Team Name + Player 1-5, fixed-length zero-terminated ASCII
+# strings. Not per-skater (no Skater 1-5 dropdown here), these are separate
+# roster-name buffers.
+# ---------------------------------------------------------------------------
 
 def _encode_name(text: str, buffer_length: int) -> bytes:
-    # encodes + zero-pads/terminates to fit buffer_length bytes exactly
+    """ASCII-ish encode + zero-pad/terminate to fit `buffer_length` bytes exactly."""
     try:
         raw = text.encode("latin-1")  # covers plain ASCII plus « (0xAB) and » (0xBB)
     except UnicodeEncodeError:
@@ -1173,7 +1439,9 @@ def _encode_name(text: str, buffer_length: int) -> bytes:
 
 
 def _decode_name(raw: bytes) -> str:
-    # decodes up to the first zero terminator (or the whole buffer if there isn't one)
+    """Reverse of _encode_name: given the full fixed-length buffer as read
+    from memory, decode up to the first zero terminator (or the whole
+    buffer if somehow there isn't one)."""
     end = raw.find(b"\x00")
     if end == -1:
         end = len(raw)

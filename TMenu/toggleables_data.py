@@ -1,3 +1,30 @@
+"""
+toggleables_data.py
+====================
+Address/value data for the TOGGLEABLES tab's subtabs (ON BOARD / OFF BOARD /
+ENVIRONMENT / MISC) plus VISUALS_TOGGLES, used by the top-level VISUALS
+tab's TOGGLEABLES subtab (see visuals_tab.py). Each toggle is a simple
+back-and-forth flip - same idea as the Extra subtab's Invisible mods: read
+the current bytes at its address, if they match "on" write "off", otherwise
+write "on".
+
+A toggle can touch more than one address at once (e.g. "Better Party Play"
+writes three separate opcodes together) - that's what `writes` is for, a
+list of {address, off, on} dicts that all get read/written as one unit. The
+FIRST entry in that list is what decides whether the toggle currently reads
+as on or off; the rest just follow along.
+
+Byte width isn't stored separately - it's just len(off) / len(on) (which
+always match each other), so a toggle can mix single bytes, 4-byte
+floats/ints, and 8-byte doubles without anything extra to configure. The
+small helpers below (_f/_d/_i/_b) just make each value's type obvious at a
+glance instead of every entry being an opaque bytes.fromhex(...) call.
+
+These are plain 8-digit PS3 addresses (not the 9-digit 0x3XXXXXXXX style the
+recipe/RGB regions use), so there's nothing to strip here - they're used
+exactly as given in the SPRX source.
+"""
+
 import struct
 
 
@@ -20,8 +47,10 @@ def _b(value: int) -> bytes:
     """Single raw byte - only Unlock All uses this."""
     return bytes([value])
 
-# On Board - toggles that apply while actively skating
 
+# ---------------------------------------------------------------------------
+# On Board - toggles that apply while actively skating
+# ---------------------------------------------------------------------------
 ONBOARD_TOGGLES = {
     "No Fall Damage": {
         "writes": [
@@ -45,8 +74,9 @@ ONBOARD_TOGGLES = {
     },
 }
 
+# ---------------------------------------------------------------------------
 # Off Board - toggles that apply while off the board / on foot
-
+# ---------------------------------------------------------------------------
 OFFBOARD_TOGGLES = {
     "Walk In Air": {
         "writes": [
@@ -60,10 +90,11 @@ OFFBOARD_TOGGLES = {
     },
 }
 
+# ---------------------------------------------------------------------------
 # Visuals - the toggle-style (on/off) visual mods, not the sliders/dropdowns
 # that already live under Edit Skater. Shown under the top-level VISUALS
 # tab's TOGGLEABLES subtab (visuals_tab.py), not here.
-
+# ---------------------------------------------------------------------------
 VISUALS_TOGGLES = {
     "Clean Replays": {
         "writes": [
@@ -92,8 +123,9 @@ VISUALS_TOGGLES = {
     },
 }
 
+# ---------------------------------------------------------------------------
 # Environment
-
+# ---------------------------------------------------------------------------
 ENVIRONMENT_TOGGLES = {
     "No Peds & Traffic": {
         "writes": [
@@ -107,8 +139,9 @@ ENVIRONMENT_TOGGLES = {
     },
 }
 
+# ---------------------------------------------------------------------------
 # Misc
-
+# ---------------------------------------------------------------------------
 MISC_TOGGLES = {
     "Better Party Play": {
         "writes": [
@@ -130,13 +163,14 @@ MISC_TOGGLES = {
     },
 }
 
+# ---------------------------------------------------------------------------
 # Debug - not plain on/off flips like the rest, so kept separate from the
 # toggle dicts above and handled by its own subtab builder.
 #
 # Debug Cam is a ONE-WAY write: clicking it always pokes the same two bytes
 # (02 / 02), there's no "off" state to flip back to - see toggleables_tab's
 # DEBUG subtab. Animation Debug is a normal on/off flip (00 = on, 01 = off).
-
+# ---------------------------------------------------------------------------
 DEBUG_CAM_WRITES = [
     {"address": 0x47C98DD0, "value": _b(0x02)},
     {"address": 0x47C68157, "value": _b(0x02)},
@@ -148,9 +182,10 @@ ANIMATION_DEBUG_TOGGLE = {
     "off": _b(0x01),
 }
 
+# ---------------------------------------------------------------------------
 # HUD - just Glitchy Text right now, used by visuals_tab.py's HUD subtab
 # (alongside Score Multiplier and Exposure, which aren't toggles).
-
+# ---------------------------------------------------------------------------
 HUD_TOGGLES = {
     "Glitchy Text": {
         "writes": [

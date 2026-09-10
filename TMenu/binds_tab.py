@@ -1,3 +1,36 @@
+"""
+binds_tab.py
+============
+Builds the BINDS tab: assign a PC keyboard hotkey (works system-wide, not
+just while TMenu has focus - see binds_keyboard.py) to a bindable action.
+
+Two dropdowns instead of a long list of rows: CATEGORY picks one of
+binds_data.BIND_GROUPS (mirrors the tab/subtab a group's actions actually
+live on - see that module's docstring for exactly what's covered), ACTION
+picks one item within it. What's shown below those two depends on the
+selected category's kind:
+
+  - "toggle" groups (most of TOGGLEABLES, MISC>DEBUG, ONLINE's Freeskate,
+    VISUALS>TOGGLEABLES): one hotkey fires the action, same as clicking its
+    own button - a single Set Bind/Clear row, like the old BINDS tab had.
+
+  - "value" groups (ADJUSTABLES, VISUALS>ADJUSTABLES/ENVIRONMENT/HUD/SCREEN):
+    a field can have SEVERAL hotkeys at once, each jumping straight to its
+    own stored value (e.g. "1" -> Ollie Height 5.0, "2" -> Ollie Height
+    12.0) - type a value, click Add Bind, press a key. Existing value binds
+    are listed with their own remove button. There's no separate reset
+    bind: pressing a value hotkey again while the field is already at that
+    exact value puts it back to the field's own vanilla default instead -
+    the field is re-read from memory each time the hotkey fires to decide
+    which of the two it's doing, so this needs no extra state of its own.
+
+IMPORT/EXPORT operate on the underlying binds.json.
+
+`runtime` (a BindsRuntime - see binds_runtime.py) is created once in
+app.py's main() and threaded through every rebuild, same as `state` and
+`settings` - see that module's docstring for why.
+"""
+
 import math
 import threading
 
@@ -42,14 +75,24 @@ def build(parent_tab, win, state, runtime):
     status_lbl.setAlignment(Qt.AlignCenter)
     status_lbl.setWordWrap(True)
 
-    # the actual memory read/write is a blocking network call, so fire
-    # handlers run it on their own background thread and use this bridge
-    # to send the resulting status text back to the GUI thread
+    # A hotkey fires from `keyboard`'s own background thread, dispatched
+    # onto the GUI thread via binds_keyboard.KeyboardBindRouter's signal -
+    # see that module's docstring. That gets us safely onto the GUI thread,
+    # but the actual PS3MAPI read/write is a blocking network round-trip,
+    # and running it straight in that GUI-thread slot would freeze the
+    # whole window for as long as it takes - very noticeable for a bind on
+    # an ordinary key that also gets typed/clicked through elsewhere while
+    # using the tool. So the fire handlers below (make_toggle_fire_handler /
+    # make_value_fire_handler) run the actual memory I/O on ANOTHER
+    # background thread of their own, and only the resulting status text
+    # crosses back to the GUI thread - via this bridge, same cross-thread
+    # signal pattern binds_keyboard.py already uses for key capture.
     status_bridge = _StatusBridge(group)
     status_bridge.fire.connect(status_lbl.setText)
 
     def _fire_async(work):
-        # runs work() on a background thread so firing a bind never blocks the GUI
+        """Runs `work` (a no-arg callable returning a status string) on a
+        background thread so a bind firing never blocks the GUI thread."""
         def worker():
             try:
                 msg = work()
@@ -58,7 +101,7 @@ def build(parent_tab, win, state, runtime):
             status_bridge.fire.emit(msg)
         threading.Thread(target=worker, daemon=True).start()
 
-    # category / action dropdowns
+    # -- category / action dropdowns --------------------------------------
     category_dd = MetroDropdown(group, items=[g["label"] for g in BIND_GROUPS], width=CONTENT_WIDTH)
     group.add(category_dd)
 
@@ -74,7 +117,7 @@ def build(parent_tab, win, state, runtime):
 
     group.add(status_lbl)
 
-    # shared fire-registration helpers
+    # -- shared fire-registration helpers ----------------------------------
 
     def make_toggle_fire_handler(item):
         def _on_fire():
@@ -92,8 +135,12 @@ def build(parent_tab, win, state, runtime):
                 try:
                     default = item.get("default")
                     target = value
-                    # pressing the hotkey again while already at `value`
-                    # resets to the field's default instead of rewriting it
+                    # Pressing this hotkey again while the field is already
+                    # sitting at `value` puts it back to the field's own
+                    # vanilla default instead of just re-writing the same
+                    # value - only possible when both a "get" and a
+                    # "default" are available; otherwise this always just
+                    # sets `value`.
                     if default is not None and "get" in item:
                         current = item["get"](state)
                         if math.isclose(current, value, rel_tol=1e-4, abs_tol=1e-4):
@@ -108,8 +155,9 @@ def build(parent_tab, win, state, runtime):
         return _on_fire
 
     def register_saved_binds():
-        # registers every saved keyboard bind with the router - called at
-        # build time, and again after IMPORT since that replaces the config
+        """(Re)registers every saved keyboard bind with the router - called
+        once at build time so a saved binds.json actually takes effect (and
+        again after IMPORT, since that replaces the in-memory config)."""
         for action_id, hotkey in runtime.config.toggle_binds.items():
             group_key, _, item_key = action_id.partition(":")
             _grp, item = get_item(group_key, item_key)
@@ -127,7 +175,7 @@ def build(parent_tab, win, state, runtime):
                     router_id, row["hotkey"], make_value_fire_handler(item, row["value"])
                 )
 
-    # toggle-kind content
+    # -- toggle-kind content ------------------------------------------------
 
     def build_toggle_content(group_key, item_key, item):
         action_id = f"{group_key}:{item_key}"
@@ -177,7 +225,7 @@ def build(parent_tab, win, state, runtime):
         clear_btn.clicked.connect(on_clear_clicked)
         refresh_label()
 
-    # value-kind content
+    # -- value-kind content ---------------------------------------------------
 
     def build_value_content(group_key, item_key, item):
         action_id = f"{group_key}:{item_key}"
@@ -234,7 +282,7 @@ def build(parent_tab, win, state, runtime):
 
                 remove_btn.clicked.connect(on_remove)
 
-        # add a new value bind
+        # -- add a new value bind --------------------------------------------
         add_row = QWidget(content_holder)
         add_row.setStyleSheet("background: transparent;")
         add_row_layout = QHBoxLayout(add_row)
@@ -284,7 +332,7 @@ def build(parent_tab, win, state, runtime):
 
         refresh_existing()
 
-    # wiring the two dropdowns together
+    # -- wiring the two dropdowns together -----------------------------------
 
     def rebuild_content():
         _clear_layout(content_layout)
@@ -315,7 +363,7 @@ def build(parent_tab, win, state, runtime):
     category_dd.currentIndexChanged.connect(on_category_changed)
     action_dd.currentIndexChanged.connect(rebuild_content)
 
-    # Import/Export
+    # -- Import/Export ----------------------------------------------------
 
     def do_export():
         path = export_save_path(
@@ -355,6 +403,6 @@ def build(parent_tab, win, state, runtime):
 
     group.add(io_row)
 
-    # initial state
+    # -- initial state ------------------------------------------------------
     register_saved_binds()
     on_category_changed(0)

@@ -1,3 +1,37 @@
+"""
+TsUI (Qt edition) - "MetroFramework for Python", rebuilt on PySide6.
+
+Same idea as the customtkinter version, same names, same call shapes -
+swap your import and most code keeps working. The move to Qt buys us three
+things the tk version had to hand-roll:
+
+ - QSS (Qt stylesheets) for real hover/pressed/checked states instead of
+   manually swapping colors in Python.
+ - A native title-on-border group box (QGroupBox already draws its title
+   overlapping the top border - no more placing a label on top by hand).
+ - QPropertyAnimation for a smoothly sliding tab underline and switch knob.
+
+Install:
+    pip install PySide6
+
+Usage mirrors the tk version:
+
+    from TsUI_qt import MetroForm, MetroButton, MetroGroupBox, MetroColorStyle
+
+    app = MetroForm.app()                      # create the QApplication once
+    win = MetroForm("My Tool", size=(750, 460), style=MetroColorStyle.PURPLE)
+
+    box = MetroGroupBox(win.body, title="Connection")
+    btn = MetroButton(box, text="CONNECT")
+    box.add(btn)
+
+    win.show()
+    app.exec()
+
+See the __main__ block at the bottom for a full reproduction of the
+CONNECTION tab from the reference screenshot.
+"""
+
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QPoint, QPropertyAnimation, QEasingCurve, Signal, QRect, QSize
@@ -8,8 +42,10 @@ from PySide6.QtWidgets import (
     QComboBox, QGridLayout, QLayout, QScrollArea, QSlider,
 )
 
-# Color / theme styles - identical values to the tk version
 
+# ---------------------------------------------------------------------------
+# Color / theme styles - identical values to the tk version
+# ---------------------------------------------------------------------------
 
 class MetroColorStyle:
     PURPLE = {"accent": "#7c4199", "hover": "#5a2f70"}
@@ -40,6 +76,7 @@ class MetroThemeStyle:
         "border_strong": "#8a8a8a",
     }
 
+
 FONT_TITLE = ("Segoe UI", 9)
 FONT_LABEL = ("Segoe UI", 10)
 FONT_BTN = ("Segoe UI", 8)
@@ -56,11 +93,27 @@ def _font(spec, bold=False):
         f.setBold(True)
     return f
 
-# theme overrides - optional theme.json, same folder as this file. widget
-# classes read from the ACTIVE_* copies below, which start identical to the
-# hardcoded defaults and get overwritten by theme.json if one exists.
-# a font entry can give a "path" to a .ttf/.otf file instead of relying on
-# it being installed - it gets registered with Qt and its family name used.
+
+# ---------------------------------------------------------------------------
+# Theme overrides - optional theme.json, same folder as this file
+# ---------------------------------------------------------------------------
+# Everything above this point (MetroColorStyle, MetroThemeStyle, the FONT_*
+# tuples, RADIUS) is the hardcoded, always-available default set - nothing
+# below ever edits those. Instead, every widget class further down reads
+# from the ACTIVE_* copies below, which start out identical to the hardcoded
+# defaults and then get selectively overwritten by theme.json if one exists
+# next to this file. No theme.json (or one missing some keys, or one that's
+# just broken/unreadable) means those particular pieces simply keep using
+# the hardcoded defaults - there's no scenario where the app fails to start
+# or loses its built-in look because of a bad or missing theme file.
+#
+# Fonts are read from whatever's installed on the user's machine - a
+# "family" name is just handed to Qt and it resolves it locally, same as
+# any other font selection. If you'd rather ship a specific font file with
+# the tool (or point at one already sitting on disk) instead of relying on
+# it being installed, a font entry can also give a "path" to a .ttf/.otf
+# file; that file gets registered with Qt at load time and its family name
+# is used automatically, no separate install step needed.
 
 import json
 import os
@@ -104,9 +157,21 @@ def _register_font_file(path):
 
 
 def load_theme(path=None):
-    # rebuilds ACTIVE_STYLE/ACTIVE_THEME/ACTIVE_FONTS/ACTIVE_RADIUS from
-    # theme.json, always starting back from the hardcoded defaults first.
-    # returns True if a theme.json was found and applied.
+    """
+    (Re)build ACTIVE_STYLE / ACTIVE_THEME / ACTIVE_FONTS / ACTIVE_RADIUS from
+    theme.json. Always starts back from the hardcoded defaults first, so a
+    key removed from the file (or the file removed entirely) correctly falls
+    back rather than leaving a stale override from a previous load in place.
+
+    Called once automatically at import time, below. Safe to call again by
+    hand later (e.g. wiring up a "reload theme" button) if that's ever
+    wanted - just re-create any widgets afterward, since QSS is baked in at
+    construction time rather than read live.
+
+    Returns True if a theme.json was found and applied, False if the
+    hardcoded defaults are in effect (no file, or the file couldn't be
+    parsed).
+    """
     global ACTIVE_STYLE, ACTIVE_THEME, ACTIVE_RADIUS, ACTIVE_FONTS
 
     ACTIVE_STYLE = dict(MetroColorStyle.PURPLE)
@@ -153,12 +218,22 @@ def load_theme(path=None):
 
     return True
 
+
 load_theme()  # picks up theme.json next to this file at import time, if one exists
 
 
 def write_default_theme_json(path=None):
-    # writes a theme.json with the hardcoded defaults, in the same schema
-    # load_theme() reads - a starting point to edit from
+    """
+    Write a theme.json containing the hardcoded defaults (MetroColorStyle.
+    PURPLE, MetroThemeStyle.DARK, the FONT_* tuples, RADIUS) in the same
+    schema load_theme() reads - style/theme/fonts/radius. Loading the file
+    this produces should look identical to having no theme.json at all;
+    it's meant as a starting point to edit from rather than something that
+    changes anything by itself.
+
+    Returns True on success, False if the file couldn't be written
+    (permissions/disk/etc - never raises).
+    """
     data = {
         "style": dict(MetroColorStyle.PURPLE),
         "theme": dict(MetroThemeStyle.DARK),
@@ -173,14 +248,25 @@ def write_default_theme_json(path=None):
     except OSError:
         return False
 
-# MetroForm - frameless window: thin accent strip, glyph controls, draggable
 
+# ---------------------------------------------------------------------------
+# MetroForm - frameless window: thin accent strip, glyph controls, draggable
+# ---------------------------------------------------------------------------
 
 class MetroForm(QWidget):
-    # frameless top-level window, build your UI inside self.body.
-    # call MetroForm.app() once at program start to get the QApplication.
-    # icon: shown in the taskbar/alt-tab since a frameless window has no
-    # native title bar. maximizable=False drops the maximize glyph.
+    """
+    Frameless top-level window. Build your UI inside `self.body`.
+    Call MetroForm.app() once at program start to get the QApplication.
+
+    `icon`: path to an .ico/.png (or a QIcon) to use as the window's icon -
+    shown in the taskbar/alt-tab, since a frameless window has no native
+    title bar for Windows to pull one from otherwise. Also applied to the
+    QApplication, so it covers every window built.
+
+    `maximizable`: set False to leave the maximize glyph out of the title
+    bar entirely (just minimize/close) - for windows like TMenu's that
+    auto-fit their own size and don't want the user fighting that.
+    """
 
     @staticmethod
     def app():
@@ -264,7 +350,7 @@ class MetroForm(QWidget):
                              self.height() - self._grip.height())
             self._grip.raise_()
 
-    # title bar
+    # -- title bar -----------------------------------------------------
     def _build_controlbar(self):
         bar = QFrame()
         bar.setFixedHeight(28)
@@ -322,9 +408,11 @@ class MetroForm(QWidget):
         if self._drag_pos is not None and event.buttons() & Qt.LeftButton:
             self.move(event.globalPosition().toPoint() - self._drag_pos)
 
+
+# ---------------------------------------------------------------------------
 # MetroButton - flat/outlined, neutral grey highlight on hover, plus a
 # persistent "selected" state (checkable) for things like an ATTACH toggle
-
+# ---------------------------------------------------------------------------
 
 class MetroButton(QPushButton):
     def __init__(self, master=None, text="BUTTON", style=None, theme=None,
@@ -379,13 +467,18 @@ class MetroButton(QPushButton):
 
 
 def set_widget_bold(widget, bold: bool):
-    # flips a widget's font bold on/off, used to mark a toggle as currently ON
+    """Flip a widget's current font bold on/off without touching anything
+    else about it (size, family, italics, etc). Used to mark a toggle
+    button as currently ON at a glance - see toggleables_tab.py's
+    build_toggle_group - without needing a whole second QSS state."""
     f = widget.font()
     f.setBold(bool(bold))
     widget.setFont(f)
 
-# MetroLabel / MetroTextBox / MetroTextArea
 
+# ---------------------------------------------------------------------------
+# MetroLabel / MetroTextBox / MetroTextArea
+# ---------------------------------------------------------------------------
 
 class MetroLabel(QLabel):
     def __init__(self, master=None, text="", theme=None, **kwargs):
@@ -426,11 +519,15 @@ class MetroTextArea(QTextEdit):
             }}
         """)
 
-# MetroPanel - plain flat-bordered container (no title)
 
+# ---------------------------------------------------------------------------
+# MetroPanel - plain flat-bordered container (no title)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # MetroDropdown - flat combo box matching the field/border styling, with a
 # similarly-styled popup list (accent highlight on hover/selection)
-
+# ---------------------------------------------------------------------------
 
 class MetroDropdown(QComboBox):
     def __init__(self, master=None, items=None, style=None, theme=None,
@@ -599,10 +696,12 @@ class MetroPanel(QFrame):
         self._layout.addWidget(widget)
         return widget
 
+
+# ---------------------------------------------------------------------------
 # MetroGroupBox - QGroupBox already renders its title overlapping the top
 # border natively, which is exactly the look we hand-rolled in the tk
 # version. All we do is style it flat and give it the same .add() helper.
-
+# ---------------------------------------------------------------------------
 
 class MetroGroupBox(QGroupBox):
     def __init__(self, master=None, title="", style=None, theme=None, **kwargs):
@@ -637,15 +736,30 @@ class MetroGroupBox(QGroupBox):
         self._layout.addWidget(widget)
         return widget
 
+
+# ---------------------------------------------------------------------------
 # MetroTabControl - plain text tabs with a moving underline indicator,
 # animated with QPropertyAnimation instead of snapping instantly
-
+# ---------------------------------------------------------------------------
 
 class FlowLayout(QLayout):
-    # left-to-right layout that wraps to a new row only when the next widget
-    # would run past the available width, like text wrapping but for widgets.
-    # each row's height is just its tallest widget, unlike a QGridLayout
-    # where every row matches its tallest cell across the whole column.
+    """
+    Left-to-right layout that wraps to a new row only when the next widget
+    would run past the available width - like text wrapping, but for
+    widgets. Used for flat-mode subtab planes instead of QGridLayout.
+
+    The key difference from a grid: each row's height is just the tallest
+    widget placed IN that row. A grid forces every row to match its tallest
+    cell across the *entire* column (so a short widget sharing a column with
+    a tall one gets stuck inside a cell as tall as that other widget, with
+    all the leftover space showing as dead gap underneath it) - a flow
+    layout has no columns to keep in sync, so nothing pads out to match a
+    neighbor it isn't actually sharing a row with. That's what gives this
+    the "packed like a puzzle" look instead of a lot of empty space.
+
+    This is the standard Qt FlowLayout pattern (same one Qt's own C++
+    examples ship), just implemented directly here in Python.
+    """
 
     def __init__(self, parent=None, margin=0, h_spacing=12, v_spacing=12):
         super().__init__(parent)
@@ -724,10 +838,24 @@ class FlowLayout(QLayout):
 
 
 class MasonryLayout(QLayout):
-    # Pinterest-style column packing: the plane is divided into fixed-width
-    # columns, and each widget drops into whichever column (or run of
-    # adjacent columns, for wide widgets) is currently shortest. A widget
-    # wider than one column spans as many columns as its width needs.
+    """
+    Pinterest-style column packing: the plane is divided into fixed-width
+    columns, and each widget is dropped into whichever column (or, for wide
+    widgets, whichever run of *adjacent* columns) is currently shortest.
+
+    This is the real fix for the gap FlowLayout still leaves: a row layout
+    only ever compares a widget against whatever's immediately next to it in
+    reading order, so a short widget next to a tall one still wastes all the
+    space below it - nothing *later* in the list is ever allowed to go back
+    and fill that space in. Masonry has no notion of "rows" at all, so a
+    later short widget can drop straight into a column that a short sibling
+    left mostly empty two items ago, instead of being forced onto a brand
+    new line.
+
+    A widget wider than one column spans however many adjacent columns its
+    own sizeHint width needs (rounded to the nearest whole column) - that's
+    Placement isn't strict registration order - see _do_layout for why.
+    """
 
     def __init__(self, parent=None, margin=0, col_width=270, h_spacing=20, v_spacing=20):
         super().__init__(parent)
@@ -786,16 +914,29 @@ class MasonryLayout(QLayout):
         num_cols = max(1, (effective.width() + self._h_spacing) // step)
         heights = [0] * num_cols  # current bottom y (relative to effective.top()) per column
 
-        # compute each item's column span once up front
+        # span doesn't change once computed, so work it out once per item
+        # rather than every time it's re-considered below.
         pending = []
         for item in self._items:
             hint = item.sizeHint()
             span = max(1, min(num_cols, round((hint.width() + self._h_spacing) / step)))
             pending.append([item, hint, span])
 
-        # placing strictly in registration order strands gaps behind wide
-        # items, so instead each step picks whichever remaining item would
-        # land lowest right now, not necessarily whichever was added first
+        # Placing strictly in registration order is what causes stranded
+        # gaps: once a wide item forces every column it spans to jump to the
+        # same height, whatever a shorter column was sitting on before that
+        # is gone for good - nothing placed *after* can ever reach back and
+        # fill space that's now behind a taller neighbor.
+        #
+        # So instead, at each step, every REMAINING item is checked for
+        # where it would land right now, and whichever one would end up
+        # lowest (i.e. fits some existing gap best) goes next - not
+        # necessarily whichever was added first. In practice this means
+        # small items naturally get pulled forward to plug short columns
+        # while a big item is still pending, instead of that big item
+        # steamrolling through and sealing the gap off first. Ties (equal
+        # resulting height) keep registration order, so this only reorders
+        # things when doing so actually saves space.
         while pending:
             best_idx = best_start = best_result = None
             for idx, (item, hint, span) in enumerate(pending):
@@ -825,9 +966,29 @@ class MasonryLayout(QLayout):
 
 
 def show_subtab_gallery(win, title, size=(950, 700)):
-    # opens a fixed-size popup window showing every subtab of a tab at once,
-    # with a scroll area so content that doesn't fit just scrolls. returns
-    # (gallery_window, tabs) - a fresh MetroTabControl to add()/add_multi() into.
+    """
+    Opens a secondary, FIXED-size window that shows every subtab of a tab
+    all at once - the "uncompacted" view. This is deliberately its own
+    separate, bounded rectangle rather than trying to inline-expand the main
+    window: there's no reasonable window size that's guaranteed to fit
+    "every subtab, fully expanded" for every tab, so instead of growing the
+    main window to chase that (which either has to cover most of the screen
+    for a tab with a lot of subtabs, or overflow it), this pops up a modest,
+    fixed-size window with a scroll area - content that doesn't fit within
+    `size` just scrolls, the window itself never grows past it.
+
+    Reuses MetroTabControl's existing flat/MasonryLayout packing (see that
+    class) for the actual "everything on one packed plane" layout - this
+    function is just "put that inside a scroll area, inside its own small
+    window" instead of inline in the main one.
+
+    Returns (gallery_window, tabs) - `tabs` is a fresh MetroTabControl
+    (compact=False) with nothing added yet; call .add()/.add_multi() on it
+    and build content into the frames it hands back, exactly like setting
+    up any other subtab set. The caller owns rebuilding this from scratch
+    each time it's opened (cheap - it's just widget construction), so
+    there's no stale-state to worry about between opens.
+    """
     gallery = MetroForm(title, heading=title, size=size,
                          style=win.metro_style, theme=win.theme, resizable=False)
 
@@ -850,11 +1011,21 @@ def show_subtab_gallery(win, title, size=(950, 700)):
 
 
 class MetroTabControl(QWidget):
-    # tabbed control with a moving underline. two layout modes:
-    # compact (default) - one subtab visible at a time behind a tab bar
-    # flat (compact=False) - tab bar hidden, every tab's frame stacked on one plane
-    # add(name) registers a subtab with one frame; add_multi(name, count)
-    # registers one with `count` independent frames (for side-by-side groups)
+    """
+    Tabbed control with a moving underline. Two layout modes:
+
+      - compact (default): one subtab visible at a time behind a tab bar,
+        the classic behaviour.
+      - flat (compact=False): the tab bar is hidden and every tab's frame is
+        shown stacked on one large plane, so nothing has to be clicked
+        through. Handy on large monitors. .set()/.tab()/.add() all still
+        work the same so builders don't have to care which mode is active.
+
+    add(name) registers a subtab with one content frame. add_multi(name,
+    count) registers one with `count` independent frames - use that instead
+    whenever a subtab is really several side-by-side groups (see its
+    docstring for why that distinction matters in flat mode specifically).
+    """
 
     def __init__(self, master=None, style=None, theme=None, width=700, height=350,
                  bar_height=34, font=None, spacing=18, left_margin=12,
@@ -926,8 +1097,10 @@ class MetroTabControl(QWidget):
         self._anim.setEasingCurve(QEasingCurve.OutCubic)
 
     def _register_tab_button(self, name, shown_widget):
-        # shared by add()/add_multi() - shown_widget can be a single frame
-        # or a panel wrapping several, .set()/.show()/.hide() just need one QWidget
+        """Shared by add()/add_multi(): the tab-bar button and bookkeeping
+        don't care whether `shown_widget` is a single content frame or a
+        panel wrapping several - .set()/.show()/.hide() just need one
+        QWidget to act on either way."""
         btn = QPushButton(name)
         btn.setFont(_font(self._tab_font))
         btn.setCursor(Qt.PointingHandCursor)
@@ -961,10 +1134,24 @@ class MetroTabControl(QWidget):
         return frame
 
     def add_multi(self, name, count):
-        # like add(), but for a subtab that's actually `count` independent
-        # content groups shown together (e.g. RGB's "Colors" and "RGB Swapping").
-        # compact mode packs them side by side in one panel. flat mode adds
-        # each as an independent MasonryLayout item so they can be backfilled separately.
+        """
+        Like add(), but for a subtab that's actually `count` independent
+        content groups meant to be shown together (e.g. RGB's "Colors" and
+        "RGB Swapping" groups) rather than one single frame.
+
+        Compact mode packs the `count` frames side by side in one row
+        inside a single panel, shown/hidden together and selected via the
+        tab bar exactly like any other subtab - looks identical to before.
+
+        Flat mode instead adds each of the `count` frames straight to the
+        outer MasonryLayout as fully independent items. That's the part
+        that actually matters: previously a subtab with two side-by-side
+        groups of different heights was ONE box to the masonry packer, sized
+        to whichever group was taller - the shorter group's leftover space
+        was dead, unreachable by anything else on the plane. As independent
+        items, the shorter one's column can get backfilled by whatever's
+        placed after it, same as any other box.
+        """
         frames = []
         if self._compact:
             panel = QWidget()
@@ -1057,9 +1244,11 @@ class MetroTabControl(QWidget):
         if self._active is not None:
             self._update_underline(animate=False)
 
+
+# ---------------------------------------------------------------------------
 # MetroSwitch - Qt has no native toggle switch, so this is a small custom
 # checkable button styled + animated to look like one
-
+# ---------------------------------------------------------------------------
 
 class MetroSwitch(QPushButton):
     toggled_on = Signal(bool)
@@ -1095,15 +1284,31 @@ class MetroSwitch(QPushButton):
             }}
         """
 
-# MetroSlider - flat horizontal QSlider wrapper matching the field/border
-# styling. Groove background can be overridden via track_style / set_track_style.
 
+# ---------------------------------------------------------------------------
+# MetroSlider - flat horizontal QSlider wrapper matching the field/border
+# styling. The groove background can be overridden with any valid QSS
+# "background" value (a plain color, or a qlineargradient(...) stop string)
+# via track_style / set_track_style - that's what lets a hue bar show a
+# rainbow gradient, a saturation bar show white-to-hue, etc, while a plain
+# MetroSlider() with no track_style just looks like a normal flat slider.
+# ---------------------------------------------------------------------------
 
 class MetroSlider(QWidget):
-    # thin QWidget wrapper around QSlider so it matches the rest of TsUI's
-    # styling, exposing value/setValue/setRange plus a valueChanged signal.
-    # track_style takes any valid QSS "background" value (flat color or
-    # gradient string) for the groove, changeable via set_track_style().
+    """
+    A thin QWidget wrapper around QSlider (Qt has no flat "Metro" slider of
+    its own) so it can sit in a layout alongside the rest of TsUI the same
+    way every other Metro* widget does, while still exposing the handful of
+    QSlider methods callers actually need (value/setValue/setRange) plus a
+    valueChanged signal.
+
+    track_style accepts anything valid as a QSS "background" value - a flat
+    color like theme['field'], or a gradient string such as
+    "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f00, stop:1 #00f)".
+    Pass a fresh one to set_track_style() any time the gradient itself needs
+    to change (e.g. a saturation bar's white-to-hue endpoint moving as the
+    hue slider next to it changes).
+    """
 
     valueChanged = Signal(int)
 
@@ -1157,7 +1362,7 @@ class MetroSlider(QWidget):
         """)
 
     def set_track_style(self, css_background):
-        # swaps the groove's QSS "background" value (color or gradient) in place
+        """Swap the groove's QSS "background" value (color or gradient) in place."""
         self._track_style = css_background
         self._apply_qss()
 

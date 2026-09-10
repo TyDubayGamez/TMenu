@@ -1,3 +1,29 @@
+"""
+online_tab.py
+=============
+Builds the ONLINE tab as four subtabs - CHALLENGES, SERVER, TOGGLEABLES,
+and TELEPORTER - using the same MetroTabControl-as-subtabs pattern
+edit_skater_tab.py / toggleables_tab.py use.
+
+This used to be four separate files (challenges_tab.py, server_tab.py,
+multiplayer_toggleables_tab.py, multiplayer_teleporter_tab.py) plus the
+multiplayer_tab.py that stitched them together. It's now one tab file +
+online_data.py for the addresses/presets/JSON paths, same split as
+toggleables_tab.py / toggleables_data.py.
+
+Subtabs -------------------------------------------------------------------
+  CHALLENGES  - sets challenge type/key/privacy/player-count/team/
+                difficulty in local memory, written all at once with
+                "Apply to Game". Export/Import via a Save/Open dialog
+                defaulted into the challenge/ folder next to the app.
+  SERVER      - routes the game at a target server IP, and sends chat
+                messages through that server's HTTP chat API.
+  TOGGLEABLES - Disable Border / Reset Border for the challenge boundary.
+  TELEPORTER  - teleport to another local player's last-read position, or
+                to typed X/Y/Z coordinates. Local-only: it never writes to
+                another skater's slot.
+"""
+
 import json
 import os
 import threading
@@ -41,8 +67,10 @@ def build(parent_tab, win, state):
 
     return subtabs
 
-# CHALLENGES
 
+# ============================================================================
+# CHALLENGES
+# ============================================================================
 
 def _load_json(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -72,7 +100,7 @@ def _build_challenges(parent_tab, win, state):
     group.setFixedWidth(480)
     layout.addWidget(group, alignment=Qt.AlignHCenter)
 
-    # Challenge type (plain - only 14 options, search is unnecessary)
+    # -- Challenge type (plain - only 14 options, search is unnecessary) ----
     type_dropdown = PlainKeyDropdown(group, list(challenge_types.items()), width=FIELD_WIDTH)
     group.add(labeled_row(group, "Challenge Type", type_dropdown))
 
@@ -80,7 +108,7 @@ def _build_challenges(parent_tab, win, state):
         group, list(challenge_keys.items()), placeholder="Search challenge / map...", width=FIELD_WIDTH)
     group.add(labeled_row(group, "Challenge / Map", key_dropdown))
 
-    # Private / max players / team
+    # -- Private / max players / team ---------------------------------------
     is_private_dd = MetroDropdown(group, items=data.BOOL_OPTIONS, width=FIELD_WIDTH, height=28)
     group.add(labeled_row(group, "Private", is_private_dd))
 
@@ -90,7 +118,7 @@ def _build_challenges(parent_tab, win, state):
     difficulty_dd = MetroDropdown(group, items=[name for name, _ in data.DIFFICULTY_OPTIONS], width=FIELD_WIDTH, height=28)
     group.add(labeled_row(group, "Difficulty", difficulty_dd))
 
-    # Set Challenge
+    # -- Set Challenge --------------------------------------------------------
     apply_btn = MetroButton(group, text="Set Challenge", width=FIELD_WIDTH, height=36)
     group.add(apply_btn)
 
@@ -102,7 +130,7 @@ def _build_challenges(parent_tab, win, state):
     status_lbl.setWordWrap(True)
     group.add(status_lbl)
 
-    # Export / Import
+    # -- Export / Import ------------------------------------------------------
     io_row = QWidget(group)
     io_layout = QHBoxLayout(io_row)
     io_layout.setContentsMargins(0, 0, 0, 0)
@@ -118,7 +146,7 @@ def _build_challenges(parent_tab, win, state):
     io_status_lbl.setWordWrap(True)
     group.add(io_status_lbl)
 
-    # helpers
+    # -- helpers --------------------------------------------------------------
 
     def current_values():
         return {
@@ -164,7 +192,7 @@ def _build_challenges(parent_tab, win, state):
     signals.apply_result.connect(on_apply_result)
 
     # -- Grab Current (reverse of Set Challenge - reads memory back into the
-    # fields instead of writing them)
+    #    fields instead of writing them) --------------------------------------
 
     def do_grab():
         try:
@@ -203,7 +231,7 @@ def _build_challenges(parent_tab, win, state):
     grab_btn.clicked.connect(on_grab_clicked)
     signals.grab_result.connect(on_grab_result)
 
-    # Export/Import
+    # -- Export/Import --------------------------------------------------------
 
     def on_export_clicked():
         values = current_values()
@@ -224,8 +252,11 @@ def _build_challenges(parent_tab, win, state):
             io_status_lbl.setText(f"Export failed: {e}")
 
     def _apply_loaded_values(loaded):
-        # pushes a challenge dict into the fields, shared by Import and Grab Current.
-        # returns a list of any keys that couldn't be applied
+        """Pushes a {challenge_type, challenge_key, is_private,
+        is_team_challenge, difficulty_mode} dict into the fields, same shape
+        current_values()/on_export_clicked produce. Shared by Import (loaded
+        from challenge.json) and Grab Current (loaded from game memory).
+        Returns a list of any keys that couldn't be applied."""
         errors = []
 
         challenge_type = str(loaded.get("challenge_type", ""))
@@ -285,8 +316,10 @@ def _build_challenges(parent_tab, win, state):
 
     return {"group": group}
 
-# SERVER
 
+# ============================================================================
+# SERVER
+# ============================================================================
 
 class _ServerSignals(QObject):
     apply_result = Signal(bool, str)
@@ -301,7 +334,7 @@ def _build_server(parent_tab, win, state):
     layout.setContentsMargins(0, 20, 0, 0)
     layout.setSpacing(14)
 
-    # Server IP routing
+    # -- Server IP routing -------------------------------------------------
     ip_group = MetroGroupBox(parent_tab, title="Server IP")
     ip_group.setFixedWidth(420)
     layout.addWidget(ip_group, alignment=Qt.AlignHCenter)
@@ -382,7 +415,7 @@ def _build_server(parent_tab, win, state):
     apply_btn.clicked.connect(on_apply_clicked)
     signals.apply_result.connect(on_apply_result)
 
-    # Chat
+    # -- Chat ---------------------------------------------------------------
     chat_group = MetroGroupBox(parent_tab, title="Server Chat")
     chat_group.setFixedWidth(420)
     layout.addWidget(chat_group, alignment=Qt.AlignHCenter)
@@ -439,8 +472,10 @@ def _build_server(parent_tab, win, state):
 
     return {"group_ip": ip_group, "group_chat": chat_group}
 
-# TOGGLEABLES (Challenge Boundary)
 
+# ============================================================================
+# TOGGLEABLES (Challenge Boundary)
+# ============================================================================
 
 class _ToggleSignals(QObject):
     result = Signal(bool, str)
@@ -518,7 +553,7 @@ def _build_toggleables(parent_tab, win, state):
     reset_btn.clicked.connect(on_reset_clicked)
     signals.result.connect(on_result)
 
-    # Freeskate
+    # -- Freeskate ------------------------------------------------------------
     # Same flip mechanic as toggleables_tab.py's toggles: read the current
     # bytes at ADDR_CHALLENGE_TYPE, if they already match "on" (Freeskate,
     # "22") write "off" (Spot Battle, "53") instead, otherwise write "on".
@@ -563,8 +598,10 @@ def _build_toggleables(parent_tab, win, state):
 
     return {"group": group, "freeskate_group": freeskate_group}
 
-# TELEPORTER
 
+# ============================================================================
+# TELEPORTER
+# ============================================================================
 
 class _TeleportSignals(QObject):
     result = Signal(bool, str)
@@ -572,7 +609,8 @@ class _TeleportSignals(QObject):
 
 
 def _write_teleport(state, x, y, z):
-    # each write separate/explicit so a failure shows which of the three didn't go through
+    """Each write is separate and explicit so a failure clearly shows which
+    of the three didn't go through, instead of one opaque error."""
     pid = state.pid
     state.ps3.Process.Memory.Set(pid, data.TELEPORT_ADDR, data.VEC3_BE.pack(x, y + data.TELEPORT_Y_OFFSET, z))
     state.ps3.Process.Memory.Set(pid, data.TELEPORT_FLAG_1, bytes([0x01]))
@@ -587,7 +625,7 @@ def _build_teleporter(parent_tab, win, state):
     layout.setContentsMargins(0, 20, 0, 0)
     layout.setSpacing(12)
 
-    # Teleport to Player
+    # -- Teleport to Player -----------------------------------------------
     skater_group = MetroGroupBox(parent_tab, title="Teleport to Player")
     skater_group.setFixedWidth(300)
     layout.addWidget(skater_group, alignment=Qt.AlignHCenter)
@@ -615,7 +653,7 @@ def _build_teleporter(parent_tab, win, state):
         btn.clicked.connect(make_skater_handler(i))
         skater_group.add(btn)
 
-    # Custom Coordinates
+    # -- Custom Coordinates --------------------------------------------------
     custom_group = MetroGroupBox(parent_tab, title="Custom Coordinates")
     custom_group.setFixedWidth(300)
     layout.addWidget(custom_group, alignment=Qt.AlignHCenter)

@@ -9,10 +9,8 @@ REM being a .bat rather than something Claude could run for you.
 REM
 REM What it does:
 REM   1. Asks what version number to stamp on this build (or keeps the last
-REM      one used if you just hit Enter) and asks for an optional name to
-REM      credit as the builder - both get written into version_info.txt
-REM      via build_version.py. The original tool credit (TDG) always stays,
-REM      your name (if given) is added alongside it as "This build by ...".
+REM      one used if you just hit Enter) and writes it into version_info.txt
+REM      via build_version.py
 REM   2. Installs PySide6 / requests / pyinstaller (skips anything already there)
 REM   3. Compiles app.py into a single TMenu.exe, with TDG's author/description/
 REM      version info baked into the exe's Properties (see version_info.txt),
@@ -36,13 +34,7 @@ echo.
 echo === Version ===
 set "VERSION_INPUT="
 set /p VERSION_INPUT="Enter version number (e.g. 15.2.0), or press Enter to keep the current one: "
-
-echo.
-echo === Build credit ===
-set "BUILDER_INPUT="
-set /p BUILDER_INPUT="Enter your name to be credited as the builder (optional, press Enter to skip): "
-
-python build_version.py "%VERSION_INPUT%" "%BUILDER_INPUT%"
+python build_version.py "%VERSION_INPUT%"
 if errorlevel 1 (
     echo.
     echo Couldn't set the version number - see above. Aborting.

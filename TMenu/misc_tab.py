@@ -1,3 +1,26 @@
+"""
+misc_tab.py
+===========
+Builds the top-level MISC tab as its own row of subtabs, using the same
+MetroTabControl-as-subtabs pattern edit_skater_tab.py / toggleables_tab.py
+use. Right now it holds a single DEBUG subtab.
+
+DEBUG contains:
+
+  - Debug Cam - a one-way write button (no off state). Every click writes the
+    same fixed bytes to two addresses and reports "Debug Cam SET".
+        47C98DD0 = 02
+        47C68157 = 02
+
+  - Animation Debug - a plain on/off toggle at a single address. It reads the
+    current byte to decide direction, same mechanic as the TOGGLEABLES tab.
+        47C98DD2 = 00  (on)
+        47C98DD2 = 01  (off)
+
+These are plain 8-digit PS3 addresses (same style as toggleables_data), used
+exactly as given - nothing to strip.
+"""
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout
 
@@ -48,7 +71,7 @@ def _build_debug(tab, state):
     status_lbl.setAlignment(Qt.AlignCenter)
     status_lbl.setWordWrap(True)
 
-    # debug cam
+    # -- Debug Cam - one-way write ---------------------------------------
     debug_cam_btn = MetroButton(group, text="Debug Cam", width=240, height=32)
     group.add(debug_cam_btn)
 
@@ -66,7 +89,7 @@ def _build_debug(tab, state):
 
     debug_cam_btn.clicked.connect(on_debug_cam_clicked)
 
-    # animation debug
+    # -- Animation Debug - on/off toggle ---------------------------------
     anim_btn = MetroButton(group, text="Animation Debug", width=240, height=32)
     group.add(anim_btn)
 

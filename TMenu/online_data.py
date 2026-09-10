@@ -1,3 +1,13 @@
+"""
+online_data.py
+================
+Address/data constants for the ONLINE tab's four subtabs (CHALLENGES /
+SERVER / TOGGLEABLES / TELEPORTER). Mirrors the toggleables_tab /
+toggleables_data split - this file has no UI code, just addresses, presets,
+JSON paths, and the small pack/unpack helpers the ONLINE tab's subtabs
+share.
+"""
+
 import os
 import struct
 
@@ -5,7 +15,7 @@ from app_paths import base_dir
 
 HERE = base_dir()
 
-# Challenges
+# -- Challenges --------------------------------------------------------------
 CHALLENGE_TYPES_PATH = os.path.join(HERE, "challenge_types.json")
 CHALLENGE_KEYS_PATH = os.path.join(HERE, "challenge_keys.json")
 # Export/Import no longer read/write a single fixed challenge.json - see
@@ -32,7 +42,7 @@ CHALLENGE_TYPE_FIELD_WIDTH = 32
 FREESKATE_TYPE_ON = "22"
 FREESKATE_TYPE_OFF = "53"
 
-# Server
+# -- Server --------------------------------------------------------------------
 IP_FIELD_ADDRESS = 0x01537528
 IP_FIELD_WIDTH = 64  # generous fixed field so a shorter IP fully clears a longer one
 
@@ -45,7 +55,7 @@ SERVER_PRESETS = [
     ("Custom", None),
 ]
 
-# Toggleables (Challenge Boundary)
+# -- Toggleables (Challenge Boundary) ------------------------------------------
 ADDR_BORDER_FLAG_1 = 0x30205EB3
 ADDR_BORDER_FLAG_2 = 0x30205ECB
 ADDR_BORDER_OPCODE = 0x0155BB6E
@@ -53,7 +63,7 @@ ADDR_BORDER_OPCODE = 0x0155BB6E
 DISABLE_OPCODE_BYTES = b"asd"
 ORIGINAL_OPCODE_BYTES = bytes([0x25, 0x79, 0x2E])
 
-# Teleporter
+# -- Teleporter ------------------------------------------------------------------
 # Skater 1's X coordinate. Skaters 2-6 sit at the same offset apart.
 SKATER_BASE_ADDR = 0x30192A530
 SKATER_STRIDE = 0xD0
@@ -71,10 +81,12 @@ TELEPORT_Y_OFFSET = 0.5
 
 VEC3_BE = struct.Struct(">fff")  # X, Y, Z packed as big-endian floats
 
-# Shared pack/unpack helpers
+
+# -- Shared pack/unpack helpers --------------------------------------------------
 def pack_ascii(value: str, field_width: int) -> bytes:
-    # ASCII + null terminator, padded to field_width so a shorter write
-    # can't leave bytes from a longer previous value behind
+    """ASCII string + null terminator, padded with extra zero bytes out to a
+    fixed field width so leftover bytes from a longer previous value can't
+    survive a shorter write."""
     data = value.encode("ascii") + b"\x00"
     if len(data) < field_width:
         data += b"\x00" * (field_width - len(data))
@@ -82,7 +94,7 @@ def pack_ascii(value: str, field_width: int) -> bytes:
 
 
 def read_null_terminated_string(state, address: int, max_len: int) -> str:
-    # reads up to max_len bytes at address, stopping at the first 0x00
+    """Reads bytes at `address` up to `max_len`, stopping at the first 0x00."""
     raw = bytes(state.ps3.Process.Memory.Get(state.pid, address, max_len))
     end = raw.find(b"\x00")
     if end != -1:
@@ -91,5 +103,5 @@ def read_null_terminated_string(state, address: int, max_len: int) -> str:
 
 
 def skater_addr(index: int) -> int:
-    # index is 0-based (0 = Player 1 ... 5 = Player 6)
+    """index is 0-based (0 = Player 1 ... 5 = Player 6)."""
     return SKATER_BASE_ADDR + index * SKATER_STRIDE

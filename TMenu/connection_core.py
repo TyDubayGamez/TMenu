@@ -1,11 +1,37 @@
+"""
+connection_core.py
+===================
+The "connect, then find EBOOT.BIN and attach" logic used by connection_tab.py's
+CONNECT button. Kept as its own module (rather than inline in
+connection_tab.py) since it's plain PS3MAPI-and-`state` logic with no Qt
+widgets involved - do_connect_and_attach() is deliberately UI-free.
+"""
+
+
 def do_connect_and_attach(state, ip, settings=None):
-    # blocking call, run this off the GUI thread. returns (ok, message)
+    """
+    Blocking - call this off the GUI thread. Returns (ok, message).
+
+    On success: updates state.connected/attached/attached_name/ip, saves
+    `ip` to settings.last_ip if given and different, and fires
+    state.notify_attached().
+
+    On a partial result (connected, but EBOOT.BIN isn't running yet):
+    state.connected is left True; state.attached is left False - the
+    caller (the user pressing CONNECT again) is expected to retry the
+    attach once the game is up.
+
+    On a full failure (e.g. target unreachable): state.connected/attached
+    are both left False.
+    """
     if not ip:
         return False, "No IP address to connect to."
 
     try:
-        # connecting again when already connected is a no-op, so retrying
-        # after a failed attach is safe
+        # Connecting is a no-op if a session is already up (ps3mapi's
+        # connect() just returns), so pressing CONNECT again after a
+        # successful connect-but-failed-attach safely retries the attach
+        # without re-dialing the socket.
         state.ps3.ConnectTarget(ip)
         state.ip = ip
         state.connected = True
@@ -13,7 +39,6 @@ def do_connect_and_attach(state, ip, settings=None):
             settings.last_ip = ip
             settings.save()
 
-        # find the running game process
         pids = state.ps3.Process.GetPidProcesses()
         eboot_pid = None
         for pid in pids:

@@ -1,3 +1,12 @@
+"""
+adjustables_tab.py
+====================
+Builds the top-level ADJUSTABLES tab as two subtabs (ON BOARD / OFF BOARD),
+same MetroTabControl-as-subtabs pattern the other multi-subtab tabs use.
+Every field here is a single global float value (no per-skater selector),
+built by field_widgets.build_float_grid against adjustables_data.py's specs.
+"""
+
 from PySide6.QtWidgets import QVBoxLayout
 
 from TsUI_qt import MetroTabControl

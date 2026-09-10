@@ -1,3 +1,33 @@
+"""
+field_widgets.py
+=================
+Shared "simple field" building blocks for tabs that are just a grid of
+single global values (not per-skater, no skater selector) - ADJUSTABLES,
+VISUALS's ADJUSTABLES/ENVIRONMENT/SCREEN subtabs, and SAVE's STATS subtab
+all use this instead of each re-writing the same grid/GET/SET/placeholder
+boilerplate edit_skater_tab.py's Style subtab already established.
+
+Field spec dict (built by the factory functions below, or by hand for
+anything more custom):
+    {
+        "label": "Transparency",   # shown above the box
+        "kind": "float" or "int",  # controls parsing/formatting
+        "default": 255.0,          # shown as a greyed-out placeholder only -
+                                    # never pre-filled as real text, and never
+                                    # used silently: SET requires the box to
+                                    # actually have a value typed in unless
+                                    # `default` is not None, in which case an
+                                    # empty box falls back to it.
+        "get": lambda state: <value>,          # reads memory, returns a number
+        "set": lambda state, value: None,      # writes `value` to memory
+    }
+
+build_float_grid() lays a list of these out as a grid of label/box/GET+SET
+cells (GET on the left, SET on the right - same convention as Style), with
+an optional GET ALL / SET ALL row spread across the bottom when there's more
+than one field.
+"""
+
 import math
 import struct
 
@@ -15,12 +45,14 @@ HALF_BTN_WIDTH = (FIELD_WIDTH - BTN_SPACING) // 2
 GRID_H_SPACING = 20
 GRID_V_SPACING = 16
 
-# each factory returns a field spec dict:
-# {"label", "kind": "float"/"int", "default", "get": fn(state), "set": fn(state, value)}
-# all memory addresses in this codebase are big-endian
+
+# ---------------------------------------------------------------------------
+# Field factories - each returns a field spec dict per the format above.
+# All memory addresses in this codebase are big-endian.
+# ---------------------------------------------------------------------------
 
 def simple_float_field(label, address, default=None):
-    # one address, one float
+    """One address, one float."""
     def get(state):
         raw = bytes(state.ps3.Process.Memory.Get(state.pid, address, 4))
         return struct.unpack(">f", raw)[0]
@@ -32,7 +64,8 @@ def simple_float_field(label, address, default=None):
 
 
 def multi_address_float_field(label, addresses, default=None):
-    # same float value written to every address at once, GET reads the first
+    """Same float value written to every address in `addresses` at once.
+    GET reads back from the first address."""
     def get(state):
         raw = bytes(state.ps3.Process.Memory.Get(state.pid, addresses[0], 4))
         return struct.unpack(">f", raw)[0]
@@ -46,8 +79,11 @@ def multi_address_float_field(label, addresses, default=None):
 
 
 def linked_offset_float_field(label, primary_address, secondary_address, offset, default=None):
-    # secondary_address is the user-facing value, primary_address always
-    # sits `offset` above it and is kept in sync automatically
+    """Two addresses that move together but aren't equal - `secondary_address`
+    is the real, user-facing value; `primary_address` always sits `offset`
+    above it. GET/SET only ever touch the field's own displayed number
+    (the secondary value); the primary address is kept in sync automatically
+    behind the scenes."""
     def get(state):
         raw = bytes(state.ps3.Process.Memory.Get(state.pid, secondary_address, 4))
         return struct.unpack(">f", raw)[0]
@@ -61,7 +97,7 @@ def linked_offset_float_field(label, primary_address, secondary_address, offset,
 
 
 def simple_int_field(label, address, size=4, default=None):
-    # one address, one big-endian signed int (4 bytes unless told otherwise)
+    """One address, one big-endian signed int (4 bytes unless told otherwise)."""
     def get(state):
         raw = bytes(state.ps3.Process.Memory.Get(state.pid, address, size))
         return int.from_bytes(raw, byteorder="big", signed=True)
@@ -72,7 +108,10 @@ def simple_int_field(label, address, size=4, default=None):
 
     return {"label": label, "kind": "int", "default": default, "get": get, "set": set_}
 
-# grid builder
+
+# ---------------------------------------------------------------------------
+# Grid builder
+# ---------------------------------------------------------------------------
 
 def _format_value(kind, value):
     return str(int(round(value))) if kind == "int" else f"{value:.4f}"
@@ -85,8 +124,12 @@ def _format_placeholder(kind, default):
 
 
 def _is_default(kind, value, default):
-    # true if value (read from memory) matches default closely enough to
-    # count as "vanilla" - a tolerance check since floats never come back bit-exact
+    """True if `value` (as read from memory) matches `default` closely
+    enough to still count as \"vanilla\" - floats read back from the game
+    are never bit-exact to a hand-typed default, so this is a tolerance
+    check, not ==. A field with no known default (default is None) is
+    never considered \"default\" - there's nothing to compare against, so
+    on-attach prefill always shows whatever's actually there."""
     if default is None:
         return False
     if kind == "int":
@@ -95,9 +138,17 @@ def _is_default(kind, value, default):
 
 
 def build_float_grid(tab, state, title, fields, columns=2, group_width=None, parent_layout=None):
-    # builds one MetroGroupBox with fields laid out as a grid. GET ALL/SET ALL
-    # is added automatically when there's more than one field. Pass an existing
-    # QVBoxLayout as parent_layout when a subtab holds more than one group.
+    """Builds one MetroGroupBox titled `title` into `tab`, laying `fields`
+    (a list of field-spec dicts, see module docstring) out as a grid with
+    `columns` columns. GET ALL / SET ALL is added at the bottom automatically
+    whenever there's more than one field.
+
+    `parent_layout`: pass an existing QVBoxLayout (already set up on `tab`)
+    to add this group into it instead of creating a fresh layout on `tab` -
+    needed when a subtab holds more than one group (e.g. VISUALS>WORLD's
+    Fog Color group plus this Fog Density/Distance grid, both on the same
+    tab widget - see visuals_tab.py). Leave as None for the normal
+    one-group-per-tab case, which behaves exactly as before."""
     if parent_layout is None:
         layout = QVBoxLayout(tab)
         layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
@@ -202,8 +253,13 @@ def build_float_grid(tab, state, title, fields, columns=2, group_width=None, par
                 return False
 
         def do_prefill_if_nondefault(field=field, box=box, kind=kind, default=default):
-            # loads the field's current value into its box, but only if it
-            # isn't close to the vanilla default - called on attach
+            """Quietly loads the field's current value into its box, but
+            only if that value isn't (close enough to) the vanilla default -
+            called on attach so a field someone's already changed shows its
+            real value right away, while an untouched one just keeps
+            showing the greyed-out default placeholder. Never touches
+            status_lbl and never raises - see gui_refresh.on_attach_refresh,
+            which already wraps this in its own try/except."""
             value = field["get"](state)
             if not _is_default(kind, value, default):
                 box.setText(_format_value(kind, value))
@@ -257,14 +313,25 @@ def build_float_grid(tab, state, title, fields, columns=2, group_width=None, par
 
     return group
 
-# RGB color field - one 12-byte (3 adjacent big-endian floats) color value
-# at a single fixed address, for global colors like Fog Color / Skater Color
+
+# ---------------------------------------------------------------------------
+# RGB color field - one 12-byte (3 adjacent big-endian floats, no padding)
+# color value at a single fixed address. Same shape as PARK's per-cell RGB
+# and EDIT SKATER's per-part clothing colors (color_picker.py), just without
+# a row/col or skater-part selector - for global colors like VISUALS>WORLD's
+# Fog Color or VISUALS>ADJUSTABLES' Skater Color (see visuals_data.py /
+# visuals_tab.py).
+# ---------------------------------------------------------------------------
+
 _RGB_CHANNELS = ("RED", "GREEN", "BLUE")
 
 
 def build_rgb_field_group(tab, win, state, title, address, default=None, parent_layout=None, group_width=250):
-    # default, if given, is an (r, g, b) tuple - a color counts as non-default
-    # if any of its three channels is meaningfully off from it
+    """`default`, if given, is an (r, g, b) tuple - shown as each box's
+    placeholder and used for the same "only prefill on attach if it isn't
+    the vanilla default" rule build_float_grid's fields follow (see
+    _is_default above) - a color counts as non-default if ANY of its three
+    channels is meaningfully off from `default`."""
     if parent_layout is None:
         layout = QVBoxLayout(tab)
         layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)

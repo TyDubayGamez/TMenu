@@ -1,3 +1,23 @@
+"""
+toggleables_tab.py
+===================
+Builds the TOGGLEABLES tab as four subtabs (ON BOARD / OFF BOARD /
+ENVIRONMENT / MISC), same MetroTabControl-as-subtabs pattern
+edit_skater_tab.py uses.
+
+(The former VISUALS subtab now lives on its own, under the top-level
+VISUALS tab - see visuals_tab.py - which reuses build_toggle_group below.)
+
+Every entry is a plain back-and-forth toggle, same mechanic as the Extra
+subtab's Invisible mods: read the current bytes at its address, if they
+match "on" write "off", otherwise write "on". No dropdowns, no per-skater
+selection - just a button per toggle that flips it and shows the new state.
+
+A toggle can write to more than one address at once (see toggleables_data's
+`writes` lists) - the button still just reads as a single on/off flip, all
+of that toggle's addresses get read/written together as one unit.
+"""
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 
@@ -22,7 +42,8 @@ _SUBTABS = [
 
 
 def _populate_subtabs(subtabs, state):
-    # builds every TOGGLEABLES subtab, shared by the tab control and the VIEW ALL popup
+    """Registers and builds every TOGGLEABLES subtab into `subtabs` - shared
+    by the normal inline tab control and the VIEW ALL gallery popup."""
     for label, _, _ in _SUBTABS:
         subtabs.add(label)
     for label, title, toggles in _SUBTABS:
@@ -45,9 +66,16 @@ def build(parent_tab, win, state):
 
 
 def build_toggle_group(tab, state, title, toggles, parent_layout=None):
-    # builds one toggle-button group box. public so visuals_tab.py can reuse
-    # it too. pass an existing QVBoxLayout as parent_layout when a subtab
-    # holds more than one group.
+    """Builds one toggle-button group box into `tab`. Public (no leading
+    underscore) so visuals_tab.py can reuse it for the VISUALS>TOGGLEABLES
+    subtab (and its HUD subtab's Glitchy Text toggle) instead of
+    duplicating this whole function.
+
+    `parent_layout`: pass an existing QVBoxLayout (already set up on `tab`)
+    to add this group into it instead of creating a fresh layout on `tab` -
+    same idea as field_widgets.py's build_float_grid, for a subtab that
+    holds more than one group. Leave as None for the normal
+    one-group-per-tab case, which behaves exactly as before."""
     if parent_layout is None:
         layout = QVBoxLayout(tab)
         layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
@@ -70,10 +98,13 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
         group.add(status_lbl)
         return
 
-    bold_buttons = []  # (btn, writes) pairs, checked again by the on-attach refresh below
+    bold_buttons = []  # (btn, writes) pairs, so the on-attach refresh below
+                        # can re-check every one of this group's toggles
 
     def _is_on(writes):
-        # reads writes[0] from memory and reports whether it's currently on
+        """Reads writes[0] straight from memory and reports whether this
+        toggle currently reads as on. Lets a bad/disconnected read bubble
+        up - callers decide how to handle that."""
         first = writes[0]
         current = bytes(state.ps3.Process.Memory.Get(state.pid, first["address"], len(first["on"])))
         return current == first["on"]
