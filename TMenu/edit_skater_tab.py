@@ -64,6 +64,11 @@ from edit_skater_data import (
     GRAPHIC_INJECTOR_DDS_HEADER_SKIP, GRAPHIC_INJECTOR_EXPECTED_DDS_SIZE,
     graphic_injector_pixel_address, graphic_injector_header_address,
 )
+from gender_conversions import (
+    head_gender_swap, head_gender_of,
+    eye_gender_swap, eye_gender_of,
+    is_unequipped,
+)
 
 SUBTAB_FONT = ("Segoe UI", 9)
 
@@ -1345,6 +1350,118 @@ def _build_extra(tab, state):
             mt_status_lbl.setText(str(e))
 
     mt_apply_btn.clicked.connect(on_mt_apply_clicked)
+
+    # -- Head Gender --------------------------------------------------
+    # Per-skater, reuses the same shared skater_dd as Gender/Other Clothing/
+    # Missing Texture. Has its own "Male"/"Female" target dropdown (mirrors
+    # the main Gender control's dropdown+apply pattern rather than a blind
+    # toggle) - reads the skater's current Rostral (head) asset data,
+    # figures out what gender that head currently is, and if it isn't
+    # already the selected target, looks up the match in HEAD_GENDER_SWAP
+    # and writes it back. If nothing's equipped there or the current head
+    # isn't a recognized stock head (e.g. a custom/modded one), nothing is
+    # written and the status explains why.
+    hg_group = MetroGroupBox(tab, title="Head Gender")
+    hg_group.setFixedWidth(420)
+    layout.addWidget(hg_group, alignment=Qt.AlignHCenter)
+
+    hg_gender_dd = MetroDropdown(hg_group, items=[label for _, label in GENDER_OPTIONS], width=190)
+    hg_group.add(hg_gender_dd)
+
+    hg_apply_btn = MetroButton(hg_group, text="APPLY", width=190)
+    hg_group.add(hg_apply_btn)
+
+    hg_status_lbl = _status_label(hg_group)
+    hg_group.add(hg_status_lbl)
+
+    def on_hg_apply_clicked():
+        if not state.is_ready():
+            hg_status_lbl.setText("Connect and attach first.")
+            return
+
+        try:
+            skater = _skater_num(skater_dd)
+            addr = asset_data_address(skater, "Rostral")
+            pid = state.pid
+            current = bytes(state.ps3.Process.Memory.Get(pid, addr, 16))
+
+            current_gender = head_gender_of(current)
+            if current_gender is None:
+                if is_unequipped(current):
+                    hg_status_lbl.setText(f"Skater {skater} has no head equipped - nothing changed.")
+                else:
+                    hg_status_lbl.setText(
+                        f"Skater {skater}'s current head isn't a recognized stock head - nothing changed."
+                    )
+                return
+
+            target_gender = hg_gender_dd.currentText()
+            if current_gender == target_gender:
+                hg_status_lbl.setText(f"Skater {skater} is already using a {target_gender} head.")
+                return
+
+            target_bytes, target_name = head_gender_swap(current)
+            state.ps3.Process.Memory.Set(pid, addr, target_bytes)
+            hg_status_lbl.setText(f"Skater {skater} head swapped to {target_name}.")
+        except Exception as e:
+            hg_status_lbl.setText(str(e))
+
+    hg_apply_btn.clicked.connect(on_hg_apply_clicked)
+
+    # -- Eye Gender --------------------------------------------------
+    # Same pattern as Head Gender above, but for the "Eyes" asset-data slot
+    # and EYE_GENDER_SWAP - a separate group with its own "Male"/"Female"
+    # target dropdown (kept independent from Head Gender's dropdown so the
+    # two can be applied separately, e.g. swap the head but leave the eye
+    # color alone). Eye conversion is an exact 1:1 swap (same 5 color names
+    # exist for both genders), so unlike heads there's no approximation
+    # involved.
+    eg_group = MetroGroupBox(tab, title="Eye Gender")
+    eg_group.setFixedWidth(420)
+    layout.addWidget(eg_group, alignment=Qt.AlignHCenter)
+
+    eg_gender_dd = MetroDropdown(eg_group, items=[label for _, label in GENDER_OPTIONS], width=190)
+    eg_group.add(eg_gender_dd)
+
+    eg_apply_btn = MetroButton(eg_group, text="APPLY", width=190)
+    eg_group.add(eg_apply_btn)
+
+    eg_status_lbl = _status_label(eg_group)
+    eg_group.add(eg_status_lbl)
+
+    def on_eg_apply_clicked():
+        if not state.is_ready():
+            eg_status_lbl.setText("Connect and attach first.")
+            return
+
+        try:
+            skater = _skater_num(skater_dd)
+            addr = asset_data_address(skater, "Eyes")
+            pid = state.pid
+            current = bytes(state.ps3.Process.Memory.Get(pid, addr, 16))
+
+            current_gender = eye_gender_of(current)
+            if current_gender is None:
+                if is_unequipped(current):
+                    eg_status_lbl.setText(f"Skater {skater} has no eyes equipped - nothing changed.")
+                else:
+                    eg_status_lbl.setText(
+                        f"Skater {skater}'s current eye color isn't a recognized stock color - nothing changed."
+                    )
+                return
+
+            target_gender = eg_gender_dd.currentText()
+            if current_gender == target_gender:
+                eg_status_lbl.setText(f"Skater {skater} is already using {target_gender} eyes.")
+                return
+
+            target_bytes, target_name = eye_gender_swap(current)
+            state.ps3.Process.Memory.Set(pid, addr, target_bytes)
+            eg_status_lbl.setText(f"Skater {skater} eyes swapped to {target_name}.")
+        except Exception as e:
+            eg_status_lbl.setText(str(e))
+
+    eg_apply_btn.clicked.connect(on_eg_apply_clicked)
 
     status_lbl = _status_label(group)
     group.add(status_lbl)

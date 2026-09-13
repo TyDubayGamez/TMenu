@@ -440,6 +440,7 @@ def missing_texture_bytes(current_16_bytes: bytes) -> bytes:
     return current_16_bytes[:8] + bytes(4) + current_16_bytes[12:16]
 
 
+
 # ---------------------------------------------------------------------------
 # Extra - Invisible parts + low poly / crash-fix recipe mods
 # ---------------------------------------------------------------------------
