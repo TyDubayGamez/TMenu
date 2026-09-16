@@ -31,6 +31,35 @@ from toggleables_data import (
 
 SUBTAB_FONT = ("Segoe UI", 9)
 
+# ---------------------------------------------------------------------------
+# Cross-tab bold sync - lets a toggle that's shown by more than one button
+# in different tabs (e.g. VISUALS>TOGGLEABLES' "No Black Screen" and
+# PARK>EDITOR BORDER's own "No Black Screen" button - see park_tab.py) stay
+# in bold-lockstep with each other. build_toggle_group's own buttons
+# register themselves automatically below; a button built outside it (like
+# park_tab.py's) just calls register_synced_button once, right after
+# creating it. Either way, toggling ANY button under a given name - or an
+# on-attach refresh anywhere - re-checks/re-bolds every button registered
+# under that name, not just the one that was clicked.
+# ---------------------------------------------------------------------------
+_SYNCED_BUTTONS = {}  # toggle name -> list of every button showing that toggle
+
+
+def register_synced_button(name, btn):
+    """Lets a button built outside build_toggle_group track the same on/off
+    bold state as a TOGGLEABLES entry of the same name. Call once, right
+    after creating the button."""
+    _SYNCED_BUTTONS.setdefault(name, []).append(btn)
+
+
+def set_bold_everywhere(name, bold):
+    """Bolds/un-bolds every button registered under `name`, wherever it
+    lives - the button build_toggle_group made for it plus any extra ones
+    from register_synced_button."""
+    for btn in _SYNCED_BUTTONS.get(name, []):
+        set_widget_bold(btn, bold)
+
+
 # (tab label, group box title, data dict) - the order here is the order the
 # subtabs appear in.
 _SUBTABS = [
@@ -98,7 +127,7 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
         group.add(status_lbl)
         return
 
-    bold_buttons = []  # (btn, writes) pairs, so the on-attach refresh below
+    bold_buttons = []  # (name, writes) pairs, so the on-attach refresh below
                         # can re-check every one of this group's toggles
 
     def _is_on(writes):
@@ -128,7 +157,7 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
                     data = w["on"] if turning_on else w["off"]
                     state.ps3.Process.Memory.Set(pid, w["address"], data)
 
-                set_widget_bold(btn, turning_on)
+                set_bold_everywhere(name, turning_on)
                 status_lbl.setText(f"{name} {'ON' if turning_on else 'OFF'}.")
             except Exception as e:
                 status_lbl.setText(str(e))
@@ -139,17 +168,20 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
         btn = MetroButton(group, text=name, width=240, height=32)
         btn.clicked.connect(make_toggle_handler(name, cfg, btn))
         group.add(btn)
-        bold_buttons.append((btn, cfg["writes"]))
+        bold_buttons.append((name, cfg["writes"]))
+        register_synced_button(name, btn)
 
     group.add(status_lbl)
 
     def _refresh_bold_states():
         # Silent - never touches status_lbl. A toggle whose read fails
         # (or that isn't in a determinable state yet) is just left as-is
-        # rather than guessed at.
-        for btn, writes in bold_buttons:
+        # rather than guessed at. Uses set_bold_everywhere (not
+        # set_widget_bold) so an attach anywhere also catches up any extra
+        # synced button living outside this group - see park_tab.py.
+        for name, writes in bold_buttons:
             try:
-                set_widget_bold(btn, _is_on(writes))
+                set_bold_everywhere(name, _is_on(writes))
             except Exception:
                 pass
 
