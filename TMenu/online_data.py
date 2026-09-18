@@ -58,10 +58,15 @@ SERVER_PRESETS = [
 # -- Toggleables (Challenge Boundary) ------------------------------------------
 ADDR_BORDER_FLAG_1 = 0x30205EB3
 ADDR_BORDER_FLAG_2 = 0x30205ECB
+ADDR_BORDER_FLAG_2_END = 0x30205FA0  # exclusive - zero-fill range for Reset
 ADDR_BORDER_OPCODE = 0x0155BB6E
 
 DISABLE_OPCODE_BYTES = b"asd"
-ORIGINAL_OPCODE_BYTES = bytes([0x25, 0x79, 0x2E])
+ORIGINAL_OPCODE_BYTES = bytes([0x25, 0x73, 0x2E])
+
+# Reset now zeroes the whole FLAG_2 region (30205ECB - 30205FA0) instead of
+# just the single leading byte.
+BORDER_FLAG_2_RESET_BYTES = bytes(ADDR_BORDER_FLAG_2_END - ADDR_BORDER_FLAG_2)
 
 # -- Teleporter ------------------------------------------------------------------
 # Skater 1's X coordinate. Skaters 2-6 sit at the same offset apart.

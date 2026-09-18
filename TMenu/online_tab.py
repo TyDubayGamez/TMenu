@@ -524,9 +524,10 @@ def _build_toggleables(parent_tab, win, state):
             return
         try:
             pid = state.pid
-            # FLAG_1 / FLAG_2 are write-once for disabling and have no
-            # meaningful "original" value to restore, so reset only touches
-            # the opcode address (which does have a real original value).
+            # FLAG_1 toggles back off, FLAG_2's whole region gets zeroed out,
+            # and the opcode write goes back to its original 3 bytes.
+            state.ps3.Process.Memory.Set(pid, data.ADDR_BORDER_FLAG_1, bytes([0x00]))
+            state.ps3.Process.Memory.Set(pid, data.ADDR_BORDER_FLAG_2, data.BORDER_FLAG_2_RESET_BYTES)
             state.ps3.Process.Memory.Set(pid, data.ADDR_BORDER_OPCODE, data.ORIGINAL_OPCODE_BYTES)
             signals.result.emit(True, "Border reset.")
         except Exception as e:
