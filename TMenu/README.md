@@ -19,7 +19,8 @@ get the actual `TMenu.exe`.
 4. When it finishes, everything you hand out is in the new **dist\** folder:
    - `TMenu.exe` (the icon, if you supplied one, is compressed directly into
      this exe by the build - it's not shipped as a separate `.ico` file)
-   - `settings.json`, `theme.json`, `challenge_keys.json`, `challenge_types.json`
+   - `settings.json`, `theme.json`, `challenge_keys.json`, `challenge_types.json`,
+     `Animation_AoBs.json`
 
    Keep those JSONs next to the exe — that's what "single file, jsons next
    to it" means here: the exe is the one compiled file, but the app still
@@ -88,6 +89,40 @@ relocates from there if they want, nothing is written silently. The
 matching IMPORT/LOAD buttons open in that same folder by default. See
 `theme\`, `challenge\`, `config\`, `binds\`, `recipes\` after your first
 export of each kind.
+
+## ANIMATIONS tab — animation replacer + AOB cache (added in v1.3.0)
+The **ANIMATIONS** tab has two subtabs:
+
+- **FLIP TRICKS** — the animation replacer. Pick a trick from **Trick To
+  Replace**, pick another from **Set To**, and hit **SWAP** to make the
+  first trick play the second one's animation in-game. **GET** reads back
+  whatever's currently written at the left trick's address and shows you
+  what it currently plays (including `NULL`, see below). **RESET** puts a
+  single trick back to its original animation; **RESET ALL** does that for
+  every trick at once. There's deliberately no GET ALL.
+- **CACHE** — shows how many tricks are currently cached, and a **CLEAR
+  CACHE** button.
+- **NULL** is a synthetic "blank this trick out" value
+  (`10 20 30 40 50 60 70 80 90 A0 B0 C0 D0 E0 F0 00`) available in the **Set
+  To** dropdown. It's a plain filler pattern with no real address of its
+  own, so it's never searched for in memory — it only ever gets written.
+
+### How the cache works
+Every trick's AOB (address-of-bytes pattern) lives in
+`data\Animation_AoBs.json`. The address that ships in that file is only a
+reference — the tool never trusts it directly, because the real in-game
+offset shifts between runs/builds. Instead, the first time the tool
+attaches after a fresh install (or after **CLEAR CACHE**), it scans PS3
+memory from `0x30300000` to `0x30400000` for every trick's AOB pattern in
+one pass and saves whatever it finds to `cache\tricks\aob_cache.json`. If
+that same pattern shows up more than once in that range (it almost always
+does), only the *first* address found is kept.
+
+On every later attach, if `cache\tricks\aob_cache.json` already exists it's
+loaded as-is — no re-scan, no validation. That's the whole self-fixing
+mechanism: if trick swapping ever seems to be hitting the wrong addresses,
+just hit **CLEAR CACHE** (or delete `cache\tricks\aob_cache.json` by hand)
+and the next attach rebuilds it from scratch.
 
 ## Running from source instead (no compiling)
 ```

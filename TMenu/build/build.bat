@@ -107,6 +107,7 @@ copy /y ..\data\settings.json ..\dist\data\ >nul
 copy /y ..\data\theme.json ..\dist\data\ >nul
 copy /y ..\data\challenge_keys.json ..\dist\data\ >nul
 copy /y ..\data\challenge_types.json ..\dist\data\ >nul
+copy /y ..\data\Animation_AoBs.json ..\dist\data\ >nul
 REM challenge.json isn't copied anymore - CHALLENGES export/import now go
 REM through a Save/Open dialog into a challenge\ folder instead of one fixed
 REM file, so there's no single fixed challenge.json for the app to read.
@@ -115,6 +116,7 @@ echo.
 echo === Done ===
 echo ..\dist\TMenu.exe is ready (icon.ico compressed into the exe itself, not
 echo a loose file), with a data\ folder (settings.json / theme.json /
-echo challenge*.json) sitting next to it. Hand out the whole dist\ folder
+echo challenge*.json / Animation_AoBs.json) sitting next to it. Hand out the
+echo whole dist\ folder
 echo together - it's created next to build\, not inside it.
 endlocal

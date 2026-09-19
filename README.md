@@ -39,11 +39,10 @@ TMenu connects to a PS3 running [webMAN-MOD](https://github.com/aldostools/webMA
 - **Online** — challenge editing, server options, online toggleables, and a teleporter
 - **Save** — difficulty and stats editing
 - **Misc** — debug camera and animation debug
-- **Animations** — animation replacer: swap any flip trick to play another flip trick's animation (or blank one out with a NULL value), with trick addresses auto-scanned and cached the first time you attach
 - **Binds** — assign system-wide keyboard hotkeys to almost any toggle or value in the app, so they work even while the game window has focus
 - **Settings** — theming (with your own `theme.json`), config export/import, reset everything to defaults, and restart
 
-Most tabs also have an **export/import**, so you can save your setup (a config, a skater recipe, your binds, a theme) to a file and load it again later — these save into their own folder next to the app (`config/`, `recipes/`, `binds/`, `theme/`) the first time you use them. The **Animations** tab works a little differently: instead of export/import, it keeps a `cache/tricks/` folder next to the app with the trick addresses it found on your last scan — delete it (or use the **CLEAR CACHE** button on the Cache subtab) if trick swapping ever seems off, and it'll rescan automatically next time you attach.
+Most tabs also have an **export/import**, so you can save your setup (a config, a skater recipe, your binds, a theme) to a file and load it again later — these save into their own folder next to the app (`config/`, `recipes/`, `binds/`, `theme/`) the first time you use them.
 
 ## Running from source
 
