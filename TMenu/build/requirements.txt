@@ -1,0 +1,6 @@
+PySide6
+requests
+pyinstaller
+keyboard
+numpy
+Pillow

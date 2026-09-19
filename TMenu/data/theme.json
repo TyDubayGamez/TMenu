@@ -1,0 +1,42 @@
+{
+    "style": {
+        "accent": "#7c4199",
+        "hover": "#5a2f70"
+    },
+    "theme": {
+        "bg": "#111111",
+        "panel": "#111111",
+        "field": "#222222",
+        "text": "#cccccc",
+        "text_dim": "#aaaaaa",
+        "border": "#444444",
+        "border_strong": "#999999"
+    },
+    "fonts": {
+        "title": {
+            "family": "Segoe UI",
+            "size": 9
+        },
+        "label": {
+            "family": "Segoe UI",
+            "size": 10
+        },
+        "button": {
+            "family": "Segoe UI",
+            "size": 8
+        },
+        "tab": {
+            "family": "Segoe UI",
+            "size": 10
+        },
+        "glyph": {
+            "family": "Segoe UI",
+            "size": 10
+        },
+        "heading": {
+            "family": "Segoe UI",
+            "size": 20
+        }
+    },
+    "radius": 0
+}

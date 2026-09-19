@@ -1,0 +1,43 @@
+## Controller Region Map
+
+302A6566 Select
+
+# Stick Buttons
+302A6576 L3
+302A6586 R3
+
+302A6596 Start
+
+# DPad
+302A65A6 DPAD Up
+302A65B6 DPAD Right
+302A65C6 DPAD Down
+302A65D6 DPAD Left
+
+
+
+# Triggers
+302A65E6 L2
+302A65F6 R2
+
+# Bumpers
+302A6606 L1
+302A6616 R1
+
+# Action Buttons
+302A6626 Triangle
+302A6636 Circle
+302A6646 Cross
+302A6656 Square
+
+# Right Stick Directions
+302A6666 RS Left
+302A6676 RS Right
+302A6686 RS UP
+302A6696 RS Down
+
+# Left Stick Directions
+302A66A6 LS Left
+302A66B6 LS Right
+302A66C6 LS Up
+302A66D6 LS Down

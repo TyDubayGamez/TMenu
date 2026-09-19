@@ -1,0 +1,306 @@
+{
+    "Animations": {
+        "Flip": [
+            {
+                "name": "Late Kickflip",
+                "address": "3034DBD0",
+                "aob": "3D 58 49 EF B1 6A 91 3A 6A 59 01 60 00 00 00 00"
+            },
+            {
+                "name": "Late Heelflip",
+                "address": "3034DC90",
+                "aob": "3D 58 49 EF B1 07 D0 18 6A 59 01 60 00 00 00 00"
+            },
+            {
+                "name": "Late Backfoot Kickflip",
+                "address": "3034DD50",
+                "aob": "3D 58 49 EF B0 45 84 EF 5B 6B 2F BF 7A CA D9 C0"
+            },
+            {
+                "name": "Late Backfoot Heelflip",
+                "address": "3034DE10",
+                "aob": "3D 58 49 EF B0 45 84 EC 48 C7 86 B7 7A CA D9 C0"
+            },
+            {
+                "name": "Late Shuvit",
+                "address": "3034DED0",
+                "aob": "3D 58 49 EF B0 55 1F AC 96 62 25 A0 00 00 00 00"
+            },
+            {
+                "name": "Late FS Shuvit",
+                "address": "3034DF90",
+                "aob": "3D 58 49 EF B0 D4 63 EC 96 62 25 A0 00 00 00 00"
+            },
+            {
+                "name": "Lateflip Darkcatch",
+                "address": "30345B10",
+                "aob": "3D 51 FD C8 37 BB 3E 97 49 A1 59 84 00 00 00 00"
+            },
+            {
+                "name": "Dark Late Kickflip",
+                "address": ["30382750", "30382990"],
+                "aob": "3D 51 96 E9 90 DD 3F 24 92 5A 34 F7 4E 5C F8 90"
+            },
+            {
+                "name": "Dark Late Heelflip",
+                "address": ["30382810", "303828D0"],
+                "aob": "3D 51 96 E9 90 DD 3F 24 92 57 9B AC 4E 5C F8 90"
+            },
+            {
+                "name": "Dark Late Shuvit",
+                "address": ["30382A50", "30382C90"],
+                "aob": "3D 51 96 E9 90 DD 3F 24 92 52 E6 A4 96 72 B7 60"
+            },
+            {
+                "name": "Dark Late FS Shuvit",
+                "address": ["30382B10", "30382BD0"],
+                "aob": "3D 51 96 E9 90 DD 3F 24 92 56 40 04 96 72 B7 60"
+            },
+            {
+                "name": "No Comply Trick",
+                "address": "3037FE50",
+                "aob": "3D 5A 43 1B 6F EE 32 D0 B0 1C 31 90 00 00 00 00"
+            },
+            {
+                "name": "Pop Shuvit Underflip",
+                "address": "3037C310",
+                "aob": "3D 5B F1 BD 58 F8 22 75 95 6F AE C4 6A 59 01 60"
+            },
+            {
+                "name": "Nollie Pop Shuvit Underflip",
+                "address": "3037E350",
+                "aob": "3D 5A 88 B9 7E 75 4E 6F 92 62 B0 BB 86 4C D6 18"
+            },
+            {
+                "name": "Nollie FS Pop Shuvit Underflip",
+                "address": "3037E4D0",
+                "aob": "3D 5A 87 41 7D FC AF 9F 99 97 83 E6 44 13 84 67"
+            },
+            {
+                "name": "360 Flip",
+                "address": "3037C9D0",
+                "aob": "3D 49 1C E2 6A 59 D3 B6 00 00 00 00 00 00 00 00"
+            },
+            {
+                "name": "360 Hardflip",
+                "address": "3037CCD0",
+                "aob": "3D 49 1C E4 37 7A 50 47 7F 6D 46 D8 00 00 00 00"
+            },
+            {
+                "name": "Laser Flip",
+                "address": "3037CB50",
+                "aob": "3D 58 49 C9 86 4C D6 3D 33 F3 5C 20 00 00 00 00"
+            },
+            {
+                "name": "360 Inward Heelflip",
+                "address": "3037CE50",
+                "aob": "3D 49 1C E5 75 7C 91 EE 48 C7 86 B7 7F 6D 46 D8"
+            },
+            {
+                "name": "Hardflip",
+                "address": "3037C6D0",
+                "aob": "3D 54 F0 42 4E 5C FE 19 00 00 00 00 00 00 00 00"
+            },
+            {
+                "name": "Inward Heelflip",
+                "address": "3037C790",
+                "aob": "3D 56 10 A9 86 09 C2 7C 4E 5C FE 19 00 00 00 00"
+            },
+            {
+                "name": "360 Pop Shuvit",
+                "address": "3037C850",
+                "aob": "3D 49 1C EC 79 65 BF 3A 5D 95 57 C4 00 00 00 00"
+            },
+            {
+                "name": "FS 360 Pop Shuvit",
+                "address": "3037C910",
+                "aob": "3D 53 A5 83 08 09 C9 A0 96 72 BC E9 00 00 00 00"
+            },
+            {
+                "name": "Kickflip",
+                "address": "303852D0",
+                "aob": "3D 57 9E 37 4E 5C FE 21 75 FB 36 18 00 00 00 00"
+            },
+            {
+                "name": "Heelflip",
+                "address": "303855D0",
+                "aob": "3D 55 04 EC 4E 5C FE 21 75 FB 36 18 00 00 00 00"
+            },
+            {
+                "name": "Varial Kickflip",
+                "address": "3037C550",
+                "aob": "3D 60 A9 17 36 C1 55 E7 4E 5C FE 19 00 00 00 00"
+            },
+            {
+                "name": "Varial Heelflip",
+                "address": "3037C610",
+                "aob": "3D 60 A9 17 36 BE BC 9C 4E 5C FE 19 00 00 00 00"
+            },
+            {
+                "name": "Pop Shuvit",
+                "address": "3037C250",
+                "aob": "3D 5B F1 BD 58 F8 22 75 33 F3 5C 20 00 00 00 00"
+            },
+            {
+                "name": "FS Pop Shuvit",
+                "address": "3037C3D0",
+                "aob": "3D 53 A8 D9 7E 75 4E 6F 92 51 68 58 00 00 00 00"
+            },
+            {
+                "name": "Nollie 360 Flip",
+                "address": "3037EA10",
+                "aob": "3D 5A 85 63 06 C8 F4 1D 33 F3 5C 20 00 00 00 00"
+            },
+            {
+                "name": "Nollie 360 Hardflip",
+                "address": "3037ED10",
+                "aob": "3D 5A 85 63 06 FF 91 5C 6A 59 D3 B6 00 00 00 00"
+            },
+            {
+                "name": "Nollie Laser Flip",
+                "address": "3037EB90",
+                "aob": "3D 5A 88 13 8A EB 02 07 7F 6D 46 D8 00 00 00 00"
+            },
+            {
+                "name": "Nollie 360 Inward Heel",
+                "address": "3037EE90",
+                "aob": "3D 5A 85 63 07 2A 60 B2 44 68 0F 78 6A 59 D3 B6"
+            },
+            {
+                "name": "Nollie Hardflip",
+                "address": "3037E710",
+                "aob": "3D 5A 87 7B 86 08 3D E4 B0 1C 31 90 00 00 00 00"
+            },
+            {
+                "name": "Nollie Inward Heelflip",
+                "address": "3037E7D0",
+                "aob": "3D 5A 87 AE 9D 4F D3 63 49 A1 59 84 B0 1C 31 90"
+            },
+            {
+                "name": "Nollie 360 Pop Shuvit",
+                "address": "3037E890",
+                "aob": "3D 5A 85 63 08 09 C9 A0 96 72 BC E9 00 00 00 00"
+            },
+            {
+                "name": "Nollie FS 360 Pop Shuvit",
+                "address": "3037E950",
+                "aob": "3D 5A 87 41 13 C4 45 C0 8B 4D 52 18 B0 1C 31 90"
+            },
+            {
+                "name": "Nollie Kickflip",
+                "address": "303893D0",
+                "aob": "3D 5A 87 F5 40 0F 77 B4 B1 2F A4 A6 00 00 00 00"
+            },
+            {
+                "name": "Nollie Heelflip",
+                "address": "303896D0",
+                "aob": "3D 5A 87 7F 49 A1 59 84 B1 2F A4 A6 00 00 00 00"
+            },
+            {
+                "name": "Nollie Varial Kickflip",
+                "address": "3037E590",
+                "aob": "3D 5A 89 8F 86 A3 23 C1 40 0F 77 B4 B0 1C 31 90"
+            },
+            {
+                "name": "Nollie Varial Heelflip",
+                "address": "3037E650",
+                "aob": "3D 5A 89 8F 86 A3 23 4B 49 A1 59 84 B0 1C 31 90"
+            },
+            {
+                "name": "Nollie Pop Shuvit",
+                "address": "3037E290",
+                "aob": "3D 5A 88 B9 7E 75 4E 6F 92 51 68 58 00 00 00 00"
+            },
+            {
+                "name": "Nollie FS Pop Shuvit",
+                "address": "3037E410",
+                "aob": "3D 5A 87 41 7D FC AF 9F 99 97 80 D6 00 00 00 00"
+            }
+        ],
+        "Air": [
+            {
+                "name": "Superdude",
+                "address": "3038D090",
+                "aob": "53 E3 BA 35 75 32 EB E0 4A 71 A6 EE AE FD 50 3B 00 00 00 00 00 00 00 00 53 E3 BA 35 75 32 EB E0"
+            },
+            {
+                "name": "Tailwalk",
+                "address": "0x303A2510",
+                "aob": "10 42 1A D9 88 E4 FD 46 B1 D9 75 05 6C 81 99 86 90 CA 65 D0 00 00 00 00 10 42 1A D9 88 E4 FD 46"
+            },
+            {
+                "name": "Airwalk",
+                "address": "",
+                "aob": "10 42 1A D9 88 E4 FD 46 B1 D9 55 4B 4B 72 5E 0D 3D 65 6C E0 00 00 00 00 10 42 1A D9 88 E4 FD 46"
+            },
+            {
+                "name": "Dog Piss",
+                "address": "",
+                "aob": "0B 89 12 79 88 E4 FD 46 B1 D9 55 4B 49 B2 7A E7 A6 E9 C2 F0 00 00 00 00 0B 89 12 79 88 E4 FD 46"
+            },
+            {
+                "name": "Judo Nose Grab",
+                "address": "",
+                "aob": "0B 89 12 79 88 E4 FD 46 B1 D9 55 4B 4A 71 61 47 A6 E9 C2 F0 00 00 00 00 0B 89 12 79 88 E4 FD 46"
+            },
+            {
+                "name": "Bennihanna",
+                "address": "",
+                "aob": "0B 89 12 79 88 E4 FD 46 B1 D9 75 05 6A C1 B5 8D 75 28 37 78 00 00 00 00 0B 89 12 79 88 E4 FD 46"
+            },
+            {
+                "name": "Christ Air",
+                "address": "",
+                "aob": "8D 9E 09 84 8B E6 82 53 58 8E 05 35 3C 66 19 37 A6 E9 C2 F0 00 00 00 00 8D 9E 09 84 8B E6 82 53"
+            },
+            {
+                "name": "No-Foot Air",
+                "address": "",
+                "aob": "53 E3 BA 35 75 32 CE BE 79 47 2D 71 AE FD 70 82 76 11 D1 60 00 00 00 00 53 E3 BA 35 75 32 CE BE"
+            },
+            {
+                "name": "One Foot Tail Grab",
+                "address": "",
+                "aob": "0B 89 12 79 88 E4 FD 46 B1 D9 75 05 6B 80 9B E7 A6 E9 C2 F0 00 00 00 00 0B 89 12 79 88 E4 FD 46"
+            },
+            {
+                "name": "Coffin",
+                "address": "",
+                "aob": "3D 51 0D BC 5C B7 38 A0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 3D 51 0D BC 5C B7 38 A0"
+            },
+            {
+                "name": "Stale",
+                "address": "",
+                "aob": "3B 75 74 A1 8C BA 26 FF 91 D5 BE A2 00 00 00 00 00 00 00 00 00 00 00 00 3B 75 74 A1 8C BA 26 FF"
+            },
+            {
+                "name": "Mute",
+                "address": "",
+                "aob": "3B 75 74 A1 70 93 8A 18 9D C1 00 8C 00 00 00 00 00 00 00 00 00 00 00 00 3B 75 74 A1 70 93 8A 18"
+            },
+            {
+                "name": "Front Foot",
+                "address": "",
+                "aob": "0B 89 12 79 88 EB 8F D7 4B 85 A0 60 79 27 5A 2F 41 C9 E4 88 00 00 00 00 0B 89 12 79 88 EB 8F D7"
+            },
+            {
+                "name": "Back Foot",
+                "address": "",
+                "aob": "0B 89 12 79 88 EB 8F D7 4B 85 9F B7 40 20 99 17 A6 E9 C2 F0 00 00 00 00 0B 89 12 79 88 EB 8F D7"
+            }
+        ],
+        "Grind": [],
+        "Misc": [
+            {
+                "name": "Manual",
+                "address": ["303A5690", "303A5750", "303A5810"],
+                "aob": "3D 5E FB 14 B1 A3 C0 1D 67 E6 B8 40 00 00 00 00 00 00 00 00 00 00 00 00 3D 5E FB 14 B1 A3 C0 1D"
+            },
+            {
+                "name": "Nose Manual",
+                "address": "303A5B10",
+                "aob": "3D 5A 45 71 B1 A3 C0 1D 6C 90 64 05 00 00 00 00 00 00 00 00 00 00 00 00 3D 5A 45 71 B1 A3 C0 1D"
+            }
+        ]
+    }
+}

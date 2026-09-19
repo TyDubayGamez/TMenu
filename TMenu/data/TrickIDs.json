@@ -1,0 +1,1572 @@
+[
+  {
+    "n": "revert_class",
+    "addr": "0x40E68A14",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "boneless_class",
+    "addr": "0x40E68B48",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "air_class",
+    "addr": "0x40E68C78",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "fingerflip_class",
+    "addr": "0x40E68DA8",
+    "ID": "00000000"
+  },
+  {
+    "n": "hippyjump_class",
+    "addr": "0x40E68EEC",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "footplant_class",
+    "addr": "0x40E69020",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "flip_class",
+    "addr": "0x40E69150",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "handplant_class",
+    "addr": "0x40E69280",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "nocomply_class",
+    "addr": "0x40E693B0",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "grab_class",
+    "addr": "0x40E694E0",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "grind_class",
+    "addr": "0x40E69610",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "slide_class",
+    "addr": "0x40E69740",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "manual_class",
+    "addr": "0x40E69870",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "grindwilly",
+    "addr": "0x40E699A0",
+    "ID": "0000002F"
+  },
+  {
+    "n": "grindcrooks",
+    "addr": "0x40E69A60",
+    "ID": "00000028"
+  },
+  {
+    "n": "grindovercrooks",
+    "addr": "0x40E69B20",
+    "ID": "0000002B"
+  },
+  {
+    "n": "grindnose",
+    "addr": "0x40E69BE0",
+    "ID": "0000002A"
+  },
+  {
+    "n": "grindfeeble",
+    "addr": "0x40E69CD8",
+    "ID": "00000029"
+  },
+  {
+    "n": "grindsmith",
+    "addr": "0x40E69D98",
+    "ID": "0000002E"
+  },
+  {
+    "n": "grindsalad",
+    "addr": "0x40E69E58",
+    "ID": "0000002D"
+  },
+  {
+    "n": "grindoverwilly",
+    "addr": "0x40E69F18",
+    "ID": "0000002C"
+  },
+  {
+    "n": "hardflip",
+    "addr": "0x40E69FD8",
+    "ID": "0000005B"
+  },
+  {
+    "n": "laserflip",
+    "addr": "0x40E6A0E8",
+    "ID": "00000063"
+  },
+  {
+    "n": "kickflip4",
+    "addr": "0x40E6A1F8",
+    "ID": "00000087"
+  },
+  {
+    "n": "kickflip3",
+    "addr": "0x40E6A318",
+    "ID": "00000062"
+  },
+  {
+    "n": "flip_class",
+    "addr": "0x40E6A438",
+    "ID": "FFFFFFFF"
+  },
+  {
+    "n": "mutegrab_down",
+    "addr": "0x40E6A4F8",
+    "ID": "00000047"
+  },
+  {
+    "n": "mutegrabtobsgrab_fingerflip",
+    "addr": "0x40E6A608",
+    "ID": "000000F1"
+  },
+  {
+    "n": "mutegrab",
+    "addr": "0x40E6A718",
+    "ID": "00000046"
+  },
+  {
+    "n": "kickflip2",
+    "addr": "0x40E6A828",
+    "ID": "00000061"
+  },
+  {
+    "n": "heelflip3",
+    "addr": "0x40E6A948",
+    "ID": "0000005E"
+  },
+  {
+    "n": "heelflip2",
+    "addr": "0x40E6AA68",
+    "ID": "0000005D"
+  },
+  {
+    "n": "heelflip",
+    "addr": "0x40E6AB78",
+    "ID": "0000005C"
+  },
+  {
+    "n": "heelflip4",
+    "addr": "0x40E6AC88",
+    "ID": "00000086"
+  },
+  {
+    "n": "kickflip",
+    "addr": "0x40E6ADA8",
+    "ID": "00000060"
+  },
+  {
+    "n": "inwardheelflip",
+    "addr": "0x40E6AEB8",
+    "ID": "0000005F"
+  },
+  {
+    "n": "hippyjump",
+    "addr": "0x40E6AFC8",
+    "ID": "000000EA"
+  },
+  {
+    "n": "grind5_o",
+    "addr": "0x40E6B0E8",
+    "ID": "00000026"
+  },
+  {
+    "n": "fs_noseblunt_tailgrab",
+    "addr": "0x40E6B1E0",
+    "ID": "000000CB"
+  },
+  {
+    "n": "fs_nosegrind",
+    "addr": "0x40E6B300",
+    "ID": "0000001E"
+  },
+  {
+    "n": "fs_lip_tail",
+    "addr": "0x40E6B410",
+    "ID": "00000108"
+  },
+  {
+    "n": "fs_noseblunt",
+    "addr": "0x40E6B520",
+    "ID": "0000001D"
+  },
+  {
+    "n": "fs_noseslide",
+    "addr": "0x40E6B630",
+    "ID": "0000001F"
+  },
+  {
+    "n": "fs_noseslide_tailgrab",
+    "addr": "0x40E6B740",
+    "ID": "000000C9"
+  },
+  {
+    "n": "fs_nosegrind_bsgrab",
+    "addr": "0x40E6B850",
+    "ID": "000000C4"
+  },
+  {
+    "n": "fs_nosegrind_tailgrab",
+    "addr": "0x40E6B960",
+    "ID": "000000C3"
+  },
+  {
+    "n": "fs_handplant_onefoot_front",
+    "addr": "0x40E6BA70",
+    "ID": "00000090"
+  },
+  {
+    "n": "fs_handplant_right",
+    "addr": "0x40E6BB80",
+    "ID": "0000008D"
+  },
+  {
+    "n": "fs_handplant_nofoot",
+    "addr": "0x40E6BC90",
+    "ID": "00000092"
+  },
+  {
+    "n": "fs_handplant_onefoot_back",
+    "addr": "0x40E6BDA0",
+    "ID": "00000091"
+  },
+  {
+    "n": "fs_lip_double",
+    "addr": "0x40E6BEC0",
+    "ID": "00000107"
+  },
+  {
+    "n": "fs_lip_nose",
+    "addr": "0x40E6BFD0",
+    "ID": "00000109"
+  },
+  {
+    "n": "fs_handplant_up",
+    "addr": "0x40E6C0E0",
+    "ID": "0000008C"
+  },
+  {
+    "n": "fs_lip",
+    "addr": "0x40E6C1F0",
+    "ID": "0000001C"
+  },
+  {
+    "n": "fs_tailslide_nosegrab",
+    "addr": "0x40E6C300",
+    "ID": "000000D3"
+  },
+  {
+    "n": "fs_willy",
+    "addr": "0x40E6C410",
+    "ID": "00000025"
+  },
+  {
+    "n": "fs_smith",
+    "addr": "0x40E6C520",
+    "ID": "00000023"
+  },
+  {
+    "n": "fs_tailslide",
+    "addr": "0x40E6C640",
+    "ID": "00000024"
+  },
+  {
+    "n": "gnd_fsgrab",
+    "addr": "0x40E6C750",
+    "ID": "00000045"
+  },
+  {
+    "n": "grind5050",
+    "addr": "0x40E6C870",
+    "ID": "00000027"
+  },
+  {
+    "n": "gnd_bsgrab",
+    "addr": "0x40E6C968",
+    "ID": "00000043"
+  },
+  {
+    "n": "gnd_dblgrab",
+    "addr": "0x40E6CA88",
+    "ID": "00000044"
+  },
+  {
+    "n": "fs_overcrook_bsgrab",
+    "addr": "0x40E6CBA8",
+    "ID": "000000F9"
+  },
+  {
+    "n": "fs_overcrook_tailgrab",
+    "addr": "0x40E6CCB8",
+    "ID": "000000F8"
+  },
+  {
+    "n": "fs_onefoot_right",
+    "addr": "0x40E6CDC8",
+    "ID": "000000A2"
+  },
+  {
+    "n": "fs_overcrook",
+    "addr": "0x40E6CED8",
+    "ID": "00000020"
+  },
+  {
+    "n": "fs_salad_fsgrab",
+    "addr": "0x40E6CFE8",
+    "ID": "000000CF"
+  },
+  {
+    "n": "fs_salad_nosegrab",
+    "addr": "0x40E6D0F8",
+    "ID": "000000D0"
+  },
+  {
+    "n": "fs_overwilly",
+    "addr": "0x40E6D208",
+    "ID": "00000021"
+  },
+  {
+    "n": "fs_salad",
+    "addr": "0x40E6D318",
+    "ID": "00000022"
+  },
+  {
+    "n": "mutegrab_fingerflip",
+    "addr": "0x40E6D428",
+    "ID": "000000B1"
+  },
+  {
+    "n": "slideboard",
+    "addr": "0x40E6D538",
+    "ID": "00000031"
+  },
+  {
+    "n": "slidelip",
+    "addr": "0x40E6D5F8",
+    "ID": "00000032"
+  },
+  {
+    "n": "seatbelttonose_fingerflip",
+    "addr": "0x40E6D6B8",
+    "ID": "000000FF"
+  },
+  {
+    "n": "slideblunt",
+    "addr": "0x40E6D7C8",
+    "ID": "00000030"
+  },
+  {
+    "n": "slidetail",
+    "addr": "0x40E6D888",
+    "ID": "00000035"
+  },
+  {
+    "n": "stalegrab",
+    "addr": "0x40E6D980",
+    "ID": "0000004E"
+  },
+  {
+    "n": "slidenblunt",
+    "addr": "0x40E6DA90",
+    "ID": "00000033"
+  },
+  {
+    "n": "slidenose",
+    "addr": "0x40E6DB50",
+    "ID": "00000034"
+  },
+  {
+    "n": "ollie_onefoot_front",
+    "addr": "0x40E6DC10",
+    "ID": "000000AA"
+  },
+  {
+    "n": "popshuvit",
+    "addr": "0x40E6DD30",
+    "ID": "0000007C"
+  },
+  {
+    "n": "ollie",
+    "addr": "0x40E6DE40",
+    "ID": "00000080"
+  },
+  {
+    "n": "ollie_onefoot_back",
+    "addr": "0x40E6DF50",
+    "ID": "000000AB"
+  },
+  {
+    "n": "seatbeltgrab_left",
+    "addr": "0x40E6E070",
+    "ID": "000000BF"
+  },
+  {
+    "n": "seatbeltgrab_right",
+    "addr": "0x40E6E180",
+    "ID": "000000C0"
+  },
+  {
+    "n": "rocketair",
+    "addr": "0x40E6E290",
+    "ID": "0000004D"
+  },
+  {
+    "n": "seatbeltgrab",
+    "addr": "0x40E6E3A0",
+    "ID": "000000BE"
+  },
+  {
+    "n": "tailgrab_onefoot_behind",
+    "addr": "0x40E6E4B0",
+    "ID": "000000A9"
+  },
+  {
+    "n": "tailgrab_onefoot_front",
+    "addr": "0x40E6E5C0",
+    "ID": "000000A8"
+  },
+  {
+    "n": "tailgrab_fingerflip",
+    "addr": "0x40E6E6D0",
+    "ID": "000000B0"
+  },
+  {
+    "n": "tailgrab_left",
+    "addr": "0x40E6E7E0",
+    "ID": "00000053"
+  },
+  {
+    "n": "varialheelflip",
+    "addr": "0x40E6E8F0",
+    "ID": "0000007D"
+  },
+  {
+    "n": "varialkickflip",
+    "addr": "0x40E6EA00",
+    "ID": "0000007E"
+  },
+  {
+    "n": "tailgrab_right",
+    "addr": "0x40E6EB10",
+    "ID": "00000054"
+  },
+  {
+    "n": "tailmanual",
+    "addr": "0x40E6EC20",
+    "ID": "00000003"
+  },
+  {
+    "n": "stalegrab_fingerflip",
+    "addr": "0x40E6ED40",
+    "ID": "000000B2"
+  },
+  {
+    "n": "stalegrab_left",
+    "addr": "0x40E6EE50",
+    "ID": "00000050"
+  },
+  {
+    "n": "stalegrabtofsgrab_fingerflip",
+    "addr": "0x40E6EF60",
+    "ID": "000000F0"
+  },
+  {
+    "n": "stalegrab_down",
+    "addr": "0x40E6F070",
+    "ID": "0000004F"
+  },
+  {
+    "n": "tailgrab",
+    "addr": "0x40E6F180",
+    "ID": "00000052"
+  },
+  {
+    "n": "tailgrab_airwalk",
+    "addr": "0x40E6F290",
+    "ID": "000000AC"
+  },
+  {
+    "n": "stalegrab_up",
+    "addr": "0x40E6F3A0",
+    "ID": "00000051"
+  },
+  {
+    "n": "superman",
+    "addr": "0x40E6F4B0",
+    "ID": "000000FC"
+  },
+  {
+    "n": "n_varialkickflip",
+    "addr": "0x40E6F5C0",
+    "ID": "0000007B"
+  },
+  {
+    "n": "nosegrab_onefoot_front",
+    "addr": "0x40E6F6D0",
+    "ID": "000000A6"
+  },
+  {
+    "n": "nosegrab_right",
+    "addr": "0x40E6F7E0",
+    "ID": "0000004C"
+  },
+  {
+    "n": "nosegrab_left",
+    "addr": "0x40E6F8F0",
+    "ID": "0000004B"
+  },
+  {
+    "n": "nosegrab_onefoot_behind",
+    "addr": "0x40E6FA00",
+    "ID": "000000A7"
+  },
+  {
+    "n": "n_360hardflip",
+    "addr": "0x40E6FB10",
+    "ID": "0000006B"
+  },
+  {
+    "n": "n_360inwardheelflip",
+    "addr": "0x40E6FC20",
+    "ID": "0000006C"
+  },
+  {
+    "n": "nosemanual",
+    "addr": "0x40E6FD30",
+    "ID": "00000002"
+  },
+  {
+    "n": "n_360flip",
+    "addr": "0x40E6FE50",
+    "ID": "0000006A"
+  },
+  {
+    "n": "nocomply",
+    "addr": "0x40E6FF60",
+    "ID": "000000E5"
+  },
+  {
+    "n": "nofoot_air",
+    "addr": "0x40E70070",
+    "ID": "0000008A"
+  },
+  {
+    "n": "mutegrab_left",
+    "addr": "0x40E70180",
+    "ID": "00000048"
+  },
+  {
+    "n": "mutegrab_up",
+    "addr": "0x40E70290",
+    "ID": "00000049"
+  },
+  {
+    "n": "nosegrab_airwalk",
+    "addr": "0x40E703A0",
+    "ID": "000000FE"
+  },
+  {
+    "n": "nosegrab_fingerflip",
+    "addr": "0x40E704B0",
+    "ID": "000000AF"
+  },
+  {
+    "n": "nollie",
+    "addr": "0x40E705D0",
+    "ID": "0000007F"
+  },
+  {
+    "n": "nosegrab",
+    "addr": "0x40E706E0",
+    "ID": "0000004A"
+  },
+  {
+    "n": "n_kickflip2",
+    "addr": "0x40E707F0",
+    "ID": "00000076"
+  },
+  {
+    "n": "n_kickflip3",
+    "addr": "0x40E70900",
+    "ID": "00000077"
+  },
+  {
+    "n": "n_inwardheelflip",
+    "addr": "0x40E70A20",
+    "ID": "00000074"
+  },
+  {
+    "n": "n_kickflip",
+    "addr": "0x40E70B30",
+    "ID": "00000075"
+  },
+  {
+    "n": "n_popshuvit",
+    "addr": "0x40E70C40",
+    "ID": "00000079"
+  },
+  {
+    "n": "n_varialheelflip",
+    "addr": "0x40E70D50",
+    "ID": "0000007A"
+  },
+  {
+    "n": "n_kickflip4",
+    "addr": "0x40E70E70",
+    "ID": "00000089"
+  },
+  {
+    "n": "n_laserflip",
+    "addr": "0x40E70F90",
+    "ID": "00000078"
+  },
+  {
+    "n": "n_fspopshuvit",
+    "addr": "0x40E710A0",
+    "ID": "0000006F"
+  },
+  {
+    "n": "n_hardflip",
+    "addr": "0x40E711B0",
+    "ID": "00000070"
+  },
+  {
+    "n": "n_360popshuvit",
+    "addr": "0x40E712C0",
+    "ID": "0000006D"
+  },
+  {
+    "n": "n_fs360popshuvit",
+    "addr": "0x40E713D0",
+    "ID": "0000006E"
+  },
+  {
+    "n": "n_heelflip3",
+    "addr": "0x40E714E0",
+    "ID": "00000073"
+  },
+  {
+    "n": "n_heelflip4",
+    "addr": "0x40E71600",
+    "ID": "00000088"
+  },
+  {
+    "n": "n_heelflip",
+    "addr": "0x40E71720",
+    "ID": "00000071"
+  },
+  {
+    "n": "n_heelflip2",
+    "addr": "0x40E71830",
+    "ID": "00000072"
+  },
+  {
+    "n": "bs_lip_double",
+    "addr": "0x40E71940",
+    "ID": "0000010A"
+  },
+  {
+    "n": "bs_lip_nose",
+    "addr": "0x40E71A50",
+    "ID": "0000010C"
+  },
+  {
+    "n": "bs_handplant_up",
+    "addr": "0x40E71B60",
+    "ID": "00000096"
+  },
+  {
+    "n": "bs_lip",
+    "addr": "0x40E71C70",
+    "ID": "0000000C"
+  },
+  {
+    "n": "bs_lip_tail",
+    "addr": "0x40E71D80",
+    "ID": "0000010B"
+  },
+  {
+    "n": "bs_nosegrind",
+    "addr": "0x40E71E90",
+    "ID": "0000000E"
+  },
+  {
+    "n": "bs_nosegrind_bsgrab",
+    "addr": "0x40E71FA0",
+    "ID": "000000F5"
+  },
+  {
+    "n": "bs_noseblunt",
+    "addr": "0x40E720B0",
+    "ID": "0000000D"
+  },
+  {
+    "n": "bs_noseblunt_tailgrab",
+    "addr": "0x40E721D0",
+    "ID": "000000CC"
+  },
+  {
+    "n": "bs_handplant",
+    "addr": "0x40E722E0",
+    "ID": "00000095"
+  },
+  {
+    "n": "bs_handplant_down",
+    "addr": "0x40E723F0",
+    "ID": "00000099"
+  },
+  {
+    "n": "bs_darkslide_tail",
+    "addr": "0x40E72510",
+    "ID": "00000110"
+  },
+  {
+    "n": "bs_feeble",
+    "addr": "0x40E72620",
+    "ID": "0000000B"
+  },
+  {
+    "n": "bs_handplant_left",
+    "addr": "0x40E72730",
+    "ID": "00000098"
+  },
+  {
+    "n": "bs_handplant_onefoot_front",
+    "addr": "0x40E72840",
+    "ID": "0000009A"
+  },
+  {
+    "n": "bs_handplant_right",
+    "addr": "0x40E72950",
+    "ID": "00000097"
+  },
+  {
+    "n": "bs_handplant_nofoot",
+    "addr": "0x40E72A60",
+    "ID": "0000009C"
+  },
+  {
+    "n": "bs_handplant_onefoot_back",
+    "addr": "0x40E72B70",
+    "ID": "0000009B"
+  },
+  {
+    "n": "bs_salad_nosegrab",
+    "addr": "0x40E72C80",
+    "ID": "000000D2"
+  },
+  {
+    "n": "bs_smith",
+    "addr": "0x40E72D90",
+    "ID": "00000013"
+  },
+  {
+    "n": "bs_salad",
+    "addr": "0x40E72EA0",
+    "ID": "00000012"
+  },
+  {
+    "n": "bs_salad_fsgrab",
+    "addr": "0x40E72FB0",
+    "ID": "000000D1"
+  },
+  {
+    "n": "bs_tailslide",
+    "addr": "0x40E730C0",
+    "ID": "00000014"
+  },
+  {
+    "n": "christ_air",
+    "addr": "0x40E731D0",
+    "ID": "0000003B"
+  },
+  {
+    "n": "coffin",
+    "addr": "0x40E732E0",
+    "ID": "0000003C"
+  },
+  {
+    "n": "bs_tailslide_nosegrab",
+    "addr": "0x40E73400",
+    "ID": "000000D4"
+  },
+  {
+    "n": "bs_willy",
+    "addr": "0x40E73510",
+    "ID": "00000015"
+  },
+  {
+    "n": "bs_noseslide_tailgrab",
+    "addr": "0x40E73620",
+    "ID": "000000CA"
+  },
+  {
+    "n": "bs_onefoot_behind",
+    "addr": "0x40E73730",
+    "ID": "000000A5"
+  },
+  {
+    "n": "bs_nosegrind_tailgrab",
+    "addr": "0x40E73840",
+    "ID": "000000F4"
+  },
+  {
+    "n": "bs_noseslide",
+    "addr": "0x40E73950",
+    "ID": "0000000F"
+  },
+  {
+    "n": "bs_onefoot_front",
+    "addr": "0x40E73A60",
+    "ID": "000000A4"
+  },
+  {
+    "n": "bs_overcrook_tailgrab",
+    "addr": "0x40E73B80",
+    "ID": "000000FA"
+  },
+  {
+    "n": "bs_overwilly",
+    "addr": "0x40E73C90",
+    "ID": "00000011"
+  },
+  {
+    "n": "bs_overcrook",
+    "addr": "0x40E73DA0",
+    "ID": "00000010"
+  },
+  {
+    "n": "bs_overcrook_bsgrab",
+    "addr": "0x40E73EB0",
+    "ID": "000000FB"
+  },
+  {
+    "n": "bsgrab_fingerflip",
+    "addr": "0x40E73FC0",
+    "ID": "000000AE"
+  },
+  {
+    "n": "bsgrab_fs_footplant",
+    "addr": "0x40E740D0",
+    "ID": "000000DB"
+  },
+  {
+    "n": "bsgrab_bs_footplant",
+    "addr": "0x40E741F0",
+    "ID": "000000DC"
+  },
+  {
+    "n": "bsgrab_down",
+    "addr": "0x40E74300",
+    "ID": "00000037"
+  },
+  {
+    "n": "bsgrab_left",
+    "addr": "0x40E74410",
+    "ID": "00000038"
+  },
+  {
+    "n": "bspowerslide",
+    "addr": "0x40E74520",
+    "ID": "00000001"
+  },
+  {
+    "n": "bsrevert",
+    "addr": "0x40E745E0",
+    "ID": "00000005"
+  },
+  {
+    "n": "bsgrab_right",
+    "addr": "0x40E746A0",
+    "ID": "00000039"
+  },
+  {
+    "n": "bsgrab_up",
+    "addr": "0x40E747B0",
+    "ID": "0000003A"
+  },
+  {
+    "n": "360inwardheelflip",
+    "addr": "0x40E748D0",
+    "ID": "00000057"
+  },
+  {
+    "n": "360popshuvit",
+    "addr": "0x40E749E0",
+    "ID": "00000058"
+  },
+  {
+    "n": "360flip",
+    "addr": "0x40E74AF0",
+    "ID": "00000055"
+  },
+  {
+    "n": "360hardflip",
+    "addr": "0x40E74C10",
+    "ID": "00000056"
+  },
+  {
+    "n": "bsboneless",
+    "addr": "0x40E74D20",
+    "ID": "000000D8"
+  },
+  {
+    "n": "bsgrabtomutegrab_fingerflip",
+    "addr": "0x40E74E30",
+    "ID": "000000EF"
+  },
+  {
+    "n": "bsgrabvarial_fingerflip",
+    "addr": "0x40E74F40",
+    "ID": "000000B4"
+  },
+  {
+    "n": "bsfastplant",
+    "addr": "0x40E75050",
+    "ID": "000000DA"
+  },
+  {
+    "n": "bsgrab",
+    "addr": "0x40E75160",
+    "ID": "00000036"
+  },
+  {
+    "n": "bs_board_tail",
+    "addr": "0x40E75280",
+    "ID": "00000105"
+  },
+  {
+    "n": "bs_crook",
+    "addr": "0x40E75390",
+    "ID": "0000000A"
+  },
+  {
+    "n": "bs_board_double",
+    "addr": "0x40E754A0",
+    "ID": "00000104"
+  },
+  {
+    "n": "bs_board_nose",
+    "addr": "0x40E755B0",
+    "ID": "00000106"
+  },
+  {
+    "n": "bs_crook_bsgrab",
+    "addr": "0x40E756C0",
+    "ID": "000000C8"
+  },
+  {
+    "n": "bs_darkslide_double",
+    "addr": "0x40E757D0",
+    "ID": "0000010F"
+  },
+  {
+    "n": "bs_darkslide_nose",
+    "addr": "0x40E758E0",
+    "ID": "00000111"
+  },
+  {
+    "n": "bs_crook_tailgrab",
+    "addr": "0x40E759F0",
+    "ID": "000000C7"
+  },
+  {
+    "n": "bs_darkslide",
+    "addr": "0x40E75B00",
+    "ID": "0000010D"
+  },
+  {
+    "n": "bs_50_50_fsgrab",
+    "addr": "0x40E75C10",
+    "ID": "000000F2"
+  },
+  {
+    "n": "bs_5_o",
+    "addr": "0x40E75D20",
+    "ID": "00000006"
+  },
+  {
+    "n": "bs_50_50",
+    "addr": "0x40E75E30",
+    "ID": "00000007"
+  },
+  {
+    "n": "bs_50_50_bsgrab",
+    "addr": "0x40E75F08",
+    "ID": "000000F3"
+  },
+  {
+    "n": "bs_5_o_fsgrab",
+    "addr": "0x40E76018",
+    "ID": "000000F6"
+  },
+  {
+    "n": "bs_blunt_tailgrab",
+    "addr": "0x40E76128",
+    "ID": "000000D6"
+  },
+  {
+    "n": "bs_board",
+    "addr": "0x40E76238",
+    "ID": "00000009"
+  },
+  {
+    "n": "bs_5_o_nosegrab",
+    "addr": "0x40E76348",
+    "ID": "000000F7"
+  },
+  {
+    "n": "bs_blunt",
+    "addr": "0x40E76458",
+    "ID": "00000008"
+  },
+  {
+    "n": "fsgrab_up",
+    "addr": "0x40E76568",
+    "ID": "00000042"
+  },
+  {
+    "n": "fspopshuvit",
+    "addr": "0x40E76678",
+    "ID": "0000005A"
+  },
+  {
+    "n": "fsgrab_right",
+    "addr": "0x40E76788",
+    "ID": "00000041"
+  },
+  {
+    "n": "fsgrab_fs_footplant",
+    "addr": "0x40E76898",
+    "ID": "000000DD"
+  },
+  {
+    "n": "fsgrab_left",
+    "addr": "0x40E769B8",
+    "ID": "00000040"
+  },
+  {
+    "n": "fs_50_50_bsgrab",
+    "addr": "0x40E76AC8",
+    "ID": "000000C2"
+  },
+  {
+    "n": "fs_50_50_fsgrab",
+    "addr": "0x40E76BD8",
+    "ID": "000000C1"
+  },
+  {
+    "n": "fs_50_50",
+    "addr": "0x40E76CE8",
+    "ID": "00000017"
+  },
+  {
+    "n": "fspowerslide",
+    "addr": "0x40E76DC0",
+    "ID": "00000000"
+  },
+  {
+    "n": "fsrevert",
+    "addr": "0x40E76E80",
+    "ID": "00000004"
+  },
+  {
+    "n": "fsfastplant",
+    "addr": "0x40E76F40",
+    "ID": "000000D9"
+  },
+  {
+    "n": "fsgrab",
+    "addr": "0x40E77060",
+    "ID": "0000003E"
+  },
+  {
+    "n": "fs_handplant_left",
+    "addr": "0x40E77170",
+    "ID": "0000008E"
+  },
+  {
+    "n": "dblgrab",
+    "addr": "0x40E77280",
+    "ID": "0000003D"
+  },
+  {
+    "n": "fs360popshuvit",
+    "addr": "0x40E77390",
+    "ID": "00000059"
+  },
+  {
+    "n": "fsgrab_down",
+    "addr": "0x40E774A0",
+    "ID": "0000003F"
+  },
+  {
+    "n": "fsgrab_fingerflip",
+    "addr": "0x40E775B0",
+    "ID": "000000AD"
+  },
+  {
+    "n": "fsgrab_bs_footplant",
+    "addr": "0x40E776C0",
+    "ID": "000000DE"
+  },
+  {
+    "n": "fsgrabtostalegrab_fingerflip",
+    "addr": "0x40E777D0",
+    "ID": "000000EE"
+  },
+  {
+    "n": "fsgrabvarial_fingerflip",
+    "addr": "0x40E778E0",
+    "ID": "000000B3"
+  },
+  {
+    "n": "fs_darkslide",
+    "addr": "0x40E779F0",
+    "ID": "0000010E"
+  },
+  {
+    "n": "fs_darkslide_double",
+    "addr": "0x40E77B00",
+    "ID": "00000112"
+  },
+  {
+    "n": "fs_crook_tailgrab",
+    "addr": "0x40E77C10",
+    "ID": "000000C5"
+  },
+  {
+    "n": "fs_crook",
+    "addr": "0x40E77D20",
+    "ID": "0000001A"
+  },
+  {
+    "n": "fs_crook_bsgrab",
+    "addr": "0x40E77E30",
+    "ID": "000000C6"
+  },
+  {
+    "n": "fs_handplant",
+    "addr": "0x40E77F40",
+    "ID": "0000008B"
+  },
+  {
+    "n": "fs_handplant_down",
+    "addr": "0x40E78050",
+    "ID": "0000008F"
+  },
+  {
+    "n": "fs_feeble",
+    "addr": "0x40E78160",
+    "ID": "0000001B"
+  },
+  {
+    "n": "fs_darkslide_nose",
+    "addr": "0x40E78270",
+    "ID": "00000114"
+  },
+  {
+    "n": "fs_darkslide_tail",
+    "addr": "0x40E78380",
+    "ID": "00000113"
+  },
+  {
+    "n": "fs_backfoot",
+    "addr": "0x40E78490",
+    "ID": "000000A3"
+  },
+  {
+    "n": "fs_blunt",
+    "addr": "0x40E785A0",
+    "ID": "00000018"
+  },
+  {
+    "n": "fs_5_o_nosegrab",
+    "addr": "0x40E786B0",
+    "ID": "000000CE"
+  },
+  {
+    "n": "fs_5_o",
+    "addr": "0x40E787C0",
+    "ID": "00000016"
+  },
+  {
+    "n": "fs_5_o_fsgrab",
+    "addr": "0x40E788D0",
+    "ID": "000000CD"
+  },
+  {
+    "n": "fs_board_nose",
+    "addr": "0x40E789E0",
+    "ID": "00000103"
+  },
+  {
+    "n": "fs_board_tail",
+    "addr": "0x40E78AF0",
+    "ID": "00000102"
+  },
+  {
+    "n": "fs_board_double",
+    "addr": "0x40E78C00",
+    "ID": "00000101"
+  },
+  {
+    "n": "fs_blunt_tailgrab",
+    "addr": "0x40E78D10",
+    "ID": "000000D5"
+  },
+  {
+    "n": "fs_board",
+    "addr": "0x40E78E20",
+    "ID": "00000019"
+  },
+  {
+    "n": "crailtotail_fingerflip",
+    "addr": "0x40E78F30",
+    "ID": "00000100"
+  },
+  {
+    "n": "darkslideout_bsleft",
+    "addr": "0x40E79040",
+    "ID": "00000146"
+  },
+  {
+    "n": "darkslideout_fsright",
+    "addr": "0x40E79150",
+    "ID": "0000014A"
+  },
+  {
+    "n": "crailgrab_right",
+    "addr": "0x40E79260",
+    "ID": "000000BD"
+  },
+  {
+    "n": "crailgrab",
+    "addr": "0x40E79370",
+    "ID": "000000BB"
+  },
+  {
+    "n": "crailgrab_left",
+    "addr": "0x40E79480",
+    "ID": "000000BC"
+  },
+  {
+    "n": "darkslideout_fsstraight",
+    "addr": "0x40E79590",
+    "ID": "00000148"
+  },
+  {
+    "n": "darkslideout_bsright",
+    "addr": "0x40E796A0",
+    "ID": "00000147"
+  },
+  {
+    "n": "fsboneless",
+    "addr": "0x40E797B0",
+    "ID": "000000D7"
+  },
+  {
+    "n": "darkslideout_fsleft",
+    "addr": "0x40E798D0",
+    "ID": "00000149"
+  },
+  {
+    "n": "darkslideout_bsstraight",
+    "addr": "0x40E799E0",
+    "ID": "00000145"
+  },
+  {
+    "n": "popshuvit_underflip",
+    "addr": "0x40E79AF0",
+    "ID": "00000125"
+  },
+  {
+    "n": "kickflip3_darkcatch",
+    "addr": "0x40E79C00",
+    "ID": "0000012F"
+  },
+  {
+    "n": "fspopshuvit_underflip",
+    "addr": "0x40E79D10",
+    "ID": "00000126"
+  },
+  {
+    "n": "kickflip3_underflip",
+    "addr": "0x40E79E20",
+    "ID": "0000011B"
+  },
+  {
+    "n": "heelflip_underflip",
+    "addr": "0x40E79F30",
+    "ID": "00000115"
+  },
+  {
+    "n": "heelflip_darkcatch",
+    "addr": "0x40E7A040",
+    "ID": "00000129"
+  },
+  {
+    "n": "kickflip2_underflip",
+    "addr": "0x40E7A150",
+    "ID": "0000011A"
+  },
+  {
+    "n": "kickflip2_darkcatch",
+    "addr": "0x40E7A260",
+    "ID": "0000012E"
+  },
+  {
+    "n": "360inwardheelflip_darkcatch",
+    "addr": "0x40E7A370",
+    "ID": "0000013B"
+  },
+  {
+    "n": "latebackfootheelflip",
+    "addr": "0x40E7A480",
+    "ID": "00000064"
+  },
+  {
+    "n": "latebackfootkickflip",
+    "addr": "0x40E7A590",
+    "ID": "00000065"
+  },
+  {
+    "n": "laserflip_darkcatch",
+    "addr": "0x40E7A6A0",
+    "ID": "0000013C"
+  },
+  {
+    "n": "kickflip_underflip",
+    "addr": "0x40E7A7B0",
+    "ID": "00000119"
+  },
+  {
+    "n": "360flip_darkcatch",
+    "addr": "0x40E7A8C0",
+    "ID": "00000139"
+  },
+  {
+    "n": "360hardflip_darkcatch",
+    "addr": "0x40E7A9D0",
+    "ID": "0000013A"
+  },
+  {
+    "n": "latebsshuv",
+    "addr": "0x40E7AAE0",
+    "ID": "00000066"
+  },
+  {
+    "n": "kickflip_darkcatch",
+    "addr": "0x40E7AC00",
+    "ID": "0000012D"
+  },
+  {
+    "n": "kickflip4_underflip",
+    "addr": "0x40E7AD10",
+    "ID": "0000011C"
+  },
+  {
+    "n": "kickflip4_darkcatch",
+    "addr": "0x40E7AE20",
+    "ID": "00000130"
+  },
+  {
+    "n": "latekickflip",
+    "addr": "0x40E7AF30",
+    "ID": "00000069"
+  },
+  {
+    "n": "lateflip_darkcatch",
+    "addr": "0x40E7B040",
+    "ID": "0000014B"
+  },
+  {
+    "n": "latefsshuv",
+    "addr": "0x40E7B150",
+    "ID": "00000067"
+  },
+  {
+    "n": "lateheelflip",
+    "addr": "0x40E7B260",
+    "ID": "00000068"
+  },
+  {
+    "n": "heelflip4_underflip",
+    "addr": "0x40E7B370",
+    "ID": "00000118"
+  },
+  {
+    "n": "n_heelflip_underflip",
+    "addr": "0x40E7B480",
+    "ID": "0000011D"
+  },
+  {
+    "n": "n_heelflip_darkcatch",
+    "addr": "0x40E7B590",
+    "ID": "00000131"
+  },
+  {
+    "n": "n_heelflip4_underflip",
+    "addr": "0x40E7B6A0",
+    "ID": "00000120"
+  },
+  {
+    "n": "darktolightbsshuv",
+    "addr": "0x40E7B7B0",
+    "ID": "00000141"
+  },
+  {
+    "n": "n_kickflip2_underflip",
+    "addr": "0x40E7B8D0",
+    "ID": "00000122"
+  },
+  {
+    "n": "n_kickflip2_darkcatch",
+    "addr": "0x40E7B9E0",
+    "ID": "00000136"
+  },
+  {
+    "n": "heelflip2_darkcatch",
+    "addr": "0x40E7BAF0",
+    "ID": "0000012A"
+  },
+  {
+    "n": "n_heelflip4_darkcatch",
+    "addr": "0x40E7BC00",
+    "ID": "00000134"
+  },
+  {
+    "n": "n_heelflip2_underflip",
+    "addr": "0x40E7BD10",
+    "ID": "0000011E"
+  },
+  {
+    "n": "n_heelflip2_darkcatch",
+    "addr": "0x40E7BE20",
+    "ID": "00000132"
+  },
+  {
+    "n": "darktolightkickflip",
+    "addr": "0x40E7BF30",
+    "ID": "00000144"
+  },
+  {
+    "n": "darktolightfsshuv",
+    "addr": "0x40E7C040",
+    "ID": "00000142"
+  },
+  {
+    "n": "n_fspopshuvit_underflip",
+    "addr": "0x40E7C150",
+    "ID": "00000128"
+  },
+  {
+    "n": "n_heelflip3_underflip",
+    "addr": "0x40E7C260",
+    "ID": "0000011F"
+  },
+  {
+    "n": "n_heelflip3_darkcatch",
+    "addr": "0x40E7C370",
+    "ID": "00000133"
+  },
+  {
+    "n": "n_360inwardheelflip_darkcatch",
+    "addr": "0x40E7C480",
+    "ID": "0000013F"
+  },
+  {
+    "n": "n_360flip_darkcatch",
+    "addr": "0x40E7C590",
+    "ID": "0000013D"
+  },
+  {
+    "n": "n_popshuvit_underflip",
+    "addr": "0x40E7C6A0",
+    "ID": "00000127"
+  },
+  {
+    "n": "n_laserflip_darkcatch",
+    "addr": "0x40E7C7B0",
+    "ID": "00000140"
+  },
+  {
+    "n": "heelflip3_darkcatch",
+    "addr": "0x40E7C8C0",
+    "ID": "0000012B"
+  },
+  {
+    "n": "heelflip4_darkcatch",
+    "addr": "0x40E7C9D0",
+    "ID": "0000012C"
+  },
+  {
+    "n": "darktolightheelflip",
+    "addr": "0x40E7CAE0",
+    "ID": "00000143"
+  },
+  {
+    "n": "heelflip3_underflip",
+    "addr": "0x40E7CBF0",
+    "ID": "00000117"
+  },
+  {
+    "n": "n_360hardflip_darkcatch",
+    "addr": "0x40E7CD00",
+    "ID": "0000013E"
+  },
+  {
+    "n": "heelflip2_underflip",
+    "addr": "0x40E7CE10",
+    "ID": "00000116"
+  },
+  {
+    "n": "n_kickflip3_underflip",
+    "addr": "0x40E7CF20",
+    "ID": "00000123"
+  },
+  {
+    "n": "n_kickflip3_darkcatch",
+    "addr": "0x40E7D030",
+    "ID": "00000137"
+  },
+  {
+    "n": "n_kickflip4_darkcatch",
+    "addr": "0x40E7D140",
+    "ID": "00000138"
+  },
+  {
+    "n": "n_kickflip_underflip",
+    "addr": "0x40E7D250",
+    "ID": "00000121"
+  },
+  {
+    "n": "n_kickflip_darkcatch",
+    "addr": "0x40E7D360",
+    "ID": "00000135"
+  },
+  {
+    "n": "n_kickflip4_underflip",
+    "addr": "0x40E7D470",
+    "ID": "00000124"
+  }
+]
