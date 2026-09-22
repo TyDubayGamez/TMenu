@@ -35,7 +35,7 @@ TMenu connects to a PS3 running [webMAN-MOD](https://github.com/aldostools/webMA
 - **Toggleables** — on-board, off-board, environment, and misc gameplay toggles
 - **Adjustables** — global values like ollie height, jump height, and plant height
 - **Visuals** — transparency, field of view, fog color/density/distance, HUD score multiplier, exposure, and more
-- **Park** — edit the RGB grid for custom park pieces
+- **Park** — edit the RGB grid for custom park pieces, editor border controls, and (**Open World** subtab) Park Editor / Object Dropper / Park Saving for free-roam, with cursor speed, merge glitch, snapping, and P.E.C zoom out. Park Saving flags a known crash: changing location after saving will almost always freeze or crash the game, but the save itself is unaffected and will load fine on restart
 - **Online** — challenge editing, server options, online toggleables, and a teleporter
 - **Save** — difficulty and stats editing
 - **Misc** — debug camera and animation debug

@@ -124,6 +124,33 @@ mechanism: if trick swapping ever seems to be hitting the wrong addresses,
 just hit **CLEAR CACHE** (or delete `cache\tricks\aob_cache.json` by hand)
 and the next attach rebuilds it from scratch.
 
+## PARK > OPEN WORLD — Park Editor / Object Dropper / Park Saving
+Converted from the standalone Skate 3 PS3 Park Tool. This is the first true
+subsub-tab in the app — a nested tab control sitting inside the PARK tab's
+new OPEN WORLD subtab, rather than the usual one level of subtabs everything
+else uses.
+
+- **PARK EDITOR** subtab — **Enable Park Editor** and **Enable Park Saving**
+  buttons. Enabling Park Editor also starts a background write loop (fixed
+  300ms interval, not user-adjustable) that continuously reapplies the
+  anti-crash / ceiling-removal writes (`AvoidCrash1`, `AvoidCrash2`,
+  `RemoveCeiling` — the original dev's own names from the real source) the
+  whole time it's on.
+- **OBJECT DROPPER** subtab — **Enable Object Dropper Editor** button, with
+  its own idle-loop writes at the same fixed 300ms interval.
+- Park Editor and Object Dropper are mutually exclusive, same rule the
+  standalone tool enforced — enabling one while the other's on is refused
+  with a status message instead of silently doing anything.
+- No checkboxes carried over from the standalone tool (Merge Glitch, PEC
+  Zoom Out, Snapping) by request — just the core enable/disable buttons plus
+  Park Saving.
+- Worth knowing: this shares its 24-byte block address (`0x018DE580`/`588`)
+  with EDITOR BORDER's Disable Border above — kept as separate constants for
+  a faithful, self-contained port, but they're really the same underlying
+  flag under the hood, so toggling one affects the other's state too.
+  EDITOR BORDER's `NORMAL_MAP_SIGNATURES` safety check (refusing the write
+  while sat in a real map, not a custom slot) is not applied here.
+
 ## Running from source instead (no compiling)
 ```
 pip install -r requirements.txt
