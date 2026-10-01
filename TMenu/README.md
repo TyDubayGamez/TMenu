@@ -151,6 +151,73 @@ else uses.
   EDITOR BORDER's `NORMAL_MAP_SIGNATURES` safety check (refusing the write
   while sat in a real map, not a custom slot) is not applied here.
 
+## EDIT SKATER > ASSETS — live asset editor (v1.4.2)
+A new **ASSETS** subtab, laid out like the Asset Editor in the Xenia save
+editor and built with TsUI widgets. Files: `asset_editor_tab.py` (the UI) and
+`asset_core.py` (the byte-level logic, no Qt).
+
+- **Editor** — skater 1-5, **REFRESH CURRENT ASSETS**, an asset dropdown (each
+  asset in the recipe, plus **All**), an action dropdown with **APPLY**, and
+  **SAVE CURRENT ASSET**. Actions: **Add Saved Asset**, **Remove Asset**
+  (never the last one), **Apply Low Poly** (copies ArenaID + ModelName of
+  `Models[1]` onto `Models[0]`), **Fix Crash** (deletes the low-LOD model from
+  every asset).
+- **Asset RGB Editor** — red/green/blue floats with **GET**, **SET** and
+  **PICK COLOR**. SET recolors one asset or All.
+- **Asset List** — the assets saved in `assets\*.json`, with **DELETE SAVED
+  ASSET**. A saved asset stores the asset's exact bytes plus readable fields.
+
+### How edits are made
+`asset_core.py` never re-serializes the whole recipe. It walks the bytes with
+the same offset walker as the standalone recipe editor, then splices only the
+bytes an edit touches, rebuilds the 4-byte length footer, and re-walks the
+result before accepting it. Anything it doesn't understand (body mods, graphic
+vectors, unknown filler) is carried through untouched. Each edit reads the
+skater's recipe fresh from memory, writes it back (zero-extended over the old
+recipe so no stale bytes remain), and reads it back to confirm. Edits that would
+push the recipe past the 8048-byte block are refused.
+
+### RGB works the way the recipe editor does it
+A color block ties an RGB value to one asset's ID and the Material ID of its
+first model. When an asset already has a block it is recolored in place (the
+game stores each color twice). Otherwise a new block is added after the last
+one and the block count (stored twice) is updated. A recipe with **no**
+color/graphics tail gets one built (`01 00 00 00 06` + gender + count + blocks
++ link section), and the texture-unlock flag is set to `0x02`, which is what the
+other tools do whenever color data is written. A tail is only recognised when
+it really starts with that `01 00 00 00 06` signature, so the zero padding and
+footer of a live memory buffer are never mistaken for one.
+
+## EDIT SKATER > RECIPES — importing a skater.p (v1.4.2)
+**IMPORT** now accepts `.recipe`, `.p` and `.P` files. A `.recipe` imports
+exactly as before. A `skater.p` goes through `skaterp_extractor.py`, a small
+dependency-free library made from the standalone Skater.p Recipe Extractor:
+
+- It searches the save for the recipe name (`cas_db`, the create-a-skater
+  recipe), starts the recipe 8 bytes before the name, and ends it 37 bytes
+  before the next `average` marker. Repeat hits are numbered in file order, so
+  the first is Skater 1; at most 5 are kept.
+- Every hit is checked (the header must match the name, and the recipe has to
+  walk cleanly with `asset_core`), so unreadable ones are skipped.
+- `SKATER_RECIPE_NAMES` at the top of the file is the one constant to change if
+  a save ever stores skaters under another name.
+- The skaters are exported to `recipes\saves\<save name>_<date_time>\skater_N.recipe`
+  straight away (works offline). `<save name>` is the folder the `skater.p` sits
+  in, or the file's own name if it isn't called `skater.p`.
+- `skaterp_import_dialog.py` then shows a small themed window: pick a save
+  skater and a slot for **IMPORT SELECTED**, or **IMPORT ALL** to send skater N
+  to slot N. Each recipe is zero-padded to the full recipe block before being
+  written, then read back to confirm.
+
+The recipe **EXPORT** button also now trims the zero padding off the end of the
+recipe (keeping a single `00`) instead of saving the whole fixed-size block.
+
+New files in v1.4.2: `asset_core.py`, `asset_editor_tab.py`,
+`skaterp_extractor.py`, `skaterp_import_dialog.py`. They are plain imports, so
+PyInstaller picks them up automatically and `build.bat` needs no changes. New
+folders created next to the exe on first use: `assets\` and
+`recipes\saves\`.
+
 ## Running from source instead (no compiling)
 ```
 pip install -r requirements.txt

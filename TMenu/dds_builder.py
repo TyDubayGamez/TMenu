@@ -1,11 +1,12 @@
 """
-dds_builder.py
-==============
-Turns any image (PNG/JPG/BMP/whatever Pillow can open) into a DDS file that
-matches the exact structure Skate 3 expects for the 256x128 graphic slots -
-DXT5 compressed, the standard 128-byte header (no DX10 extension), and a
-full 9-level mip chain down to 1x1. Used by the graphics side of EDIT
-SKATER/PARK wherever a custom image gets written into the game.
+Builds a DDS file matching the exact structure of edit_this.dds:
+  - 256x128
+  - DXT5 (BC3) compressed
+  - 128-byte standard header (no DX10 extension)
+  - Full 9-level mip chain (256x128 down to 1x1)
+  - 43,856 bytes total when target is 256x128
+
+Handles PNG / JPG / BMP / anything Pillow can open as input.
 """
 
 import numpy as np
@@ -16,8 +17,8 @@ from dxt5_encoder import encode_dxt5
 TARGET_W = 256
 TARGET_H = 128
 
-# Fixed 128-byte DDS header - same for every file since W/H/format/mip
-# count never change here, so it's just copied in as-is each time.
+# Exact 128-byte header copied from the reference edit_this.dds.
+# Structurally constant for this fixed W/H/format/mip-count combo.
 DDS_HEADER_TEMPLATE = bytes.fromhex(
     "444453207c00000007100a008000000000010000008000000100000009000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000040000004458543500000000000000000000000000000000000000000810400000000000000000000000000000000000"
 )
@@ -101,8 +102,8 @@ def _pad_to_multiple_of_4(rgba: np.ndarray) -> np.ndarray:
         return rgba
     padded = np.zeros((h + pad_h, w + pad_w, 4), dtype=np.uint8)
     padded[:h, :w, :] = rgba
-    # copy the edge pixels into the padding so odd mip sizes don't end up
-    # with black/transparent smears along the edge once encoded
+    # replicate edge pixels into the padding so block encoding doesn't
+    # smear in solid-black/transparent artifacts at odd mip sizes
     if pad_h:
         padded[h:, :w, :] = rgba[-1:, :, :]
     if pad_w:

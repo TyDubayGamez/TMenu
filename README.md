@@ -31,18 +31,37 @@ TMenu connects to a PS3 running [webMAN-MOD](https://github.com/aldostools/webMA
 ## Tabs
 
 - **Connection** — connect to your PS3's IP and attach to the running game
-- **Edit Skater** — per-skater (1–5) editing: RGB colors, RGB swapping, body/face sliders, stance/style/posture, clothing recipes, clothing lock, graphics, invisible parts, gender, team & player names
+- **Edit Skater** — per-skater (1–5) editing: RGB colors, RGB swapping, body/face sliders, stance/style/posture, clothing recipes (including importing straight from a `skater.p` save), an **Assets** editor, clothing lock, graphics, invisible parts, gender, team & player names
 - **Toggleables** — on-board, off-board, environment, and misc gameplay toggles
 - **Adjustables** — global values like ollie height, jump height, and plant height
 - **Visuals** — transparency, field of view, fog color/density/distance, HUD score multiplier, exposure, and more
-- **Park** — edit the RGB grid for custom park pieces, editor border controls, and (**Open World** subtab) Park Editor / Object Dropper / Park Saving for free-roam, with cursor speed, merge glitch, snapping, and P.E.C zoom out. Park Saving flags a known crash: changing location after saving will almost always freeze or crash the game, but the save itself is unaffected and will load fine on restart
+- **Park** — edit the RGB grid for custom park pieces, editor border controls, and (**Open World** subtab) Park Editor / Object Dropper / Park Saving for free-roam
 - **Online** — challenge editing, server options, online toggleables, and a teleporter
 - **Save** — difficulty and stats editing
 - **Misc** — debug camera and animation debug
 - **Binds** — assign system-wide keyboard hotkeys to almost any toggle or value in the app, so they work even while the game window has focus
 - **Settings** — theming (with your own `theme.json`), config export/import, reset everything to defaults, and restart
 
-Most tabs also have an **export/import**, so you can save your setup (a config, a skater recipe, your binds, a theme) to a file and load it again later — these save into their own folder next to the app (`config/`, `recipes/`, `binds/`, `theme/`) the first time you use them.
+Most tabs also have an **export/import**, so you can save your setup (a config, a skater recipe, your binds, a theme) to a file and load it again later — these save into their own folder next to the app (`config/`, `recipes/`, `assets/`, `binds/`, `theme/`) the first time you use them.
+
+## Edit Skater: Recipes and Assets
+
+**Recipes subtab**
+- **Export** saves the selected skater's recipe to a `.recipe` file. Trailing zero padding is trimmed (one `00` is kept on the end), so exports are only as big as the recipe really is.
+- **Import** takes either a `.recipe` file or a **`skater.p`** save file (the file picker only shows `.recipe` and `.p`).
+  - Picking a `skater.p` reads out the skaters stored in the save (1 to 5, depending on the save) and **exports them for you** to `recipes/saves/<save name>_<date_time>/skater_1.recipe`, `skater_2.recipe`, and so on. This works even when you're not connected to the PS3.
+  - A small window then lets you **import one save skater into any slot (Skater 1-5)**, or **import all of them in one go** (save skater 1 → slot 1, 2 → 2, …).
+  - Each recipe is checked before it's offered, so a damaged or unreadable entry is skipped instead of being written to the game.
+
+**Assets subtab** — a live editor for the pieces (hat, shirt, shoes, board, …) a skater's recipe is made of:
+- **Refresh current assets**, then pick one asset (or **All**) from the dropdown.
+- **Remove Asset** — removes the selected asset. A skater must always keep at least one.
+- **Apply Low Poly** — swaps the main model for the low-poly one. **Fix Crash** — removes the low-poly model from every asset.
+- **Add Saved Asset** — adds an asset you saved earlier from this skater or another one.
+- **Save Current Asset** — saves the selected asset (by name) into the `assets/` folder as a `.json` file you can keep or share.
+- **Asset RGB Editor** — **GET** reads an asset's color, **SET** writes it (to one asset or All), and **PICK COLOR** opens the color picker. Assets that have no color yet get one added.
+
+Every asset edit reads the recipe fresh from the game, changes only the bytes it needs to, writes it back, and reads it again to confirm.
 
 ## Running from source
 

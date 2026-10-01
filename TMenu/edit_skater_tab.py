@@ -42,6 +42,9 @@ from TsUI_qt import (
     MetroTabControl, MetroSwitch, show_subtab_gallery,
 )
 from color_picker import open_color_picker
+import asset_editor_tab
+import skaterp_extractor
+from skaterp_import_dialog import SkaterPImportDialog
 from app_paths import export_dir, export_save_path
 from dds_builder import build_dds, FIT_STRETCH, FIT_LETTERBOX, FIT_COVER
 
@@ -96,15 +99,17 @@ def _populate_subtabs(subtabs, win, state):
     subtabs.add("CLOTHING LOCK")
     graphics_spoofer_frame, graphic_editor_frame = subtabs.add_multi("GRAPHICS", 2)
     subtabs.add("EXTRA")
+    subtabs.add("ASSETS")
     subtabs.add("TEAM NAMES")
 
     _build_rgb(colors_frame, rgb_swap_frame, win, state)
     _build_body_mods(subtabs.tab("BODY MODS"), state)
     _build_style(subtabs.tab("STYLE"), state)
-    _build_recipes(subtabs.tab("RECIPES"), state)
+    _build_recipes(subtabs.tab("RECIPES"), win, state)
     _build_clothing_lock(subtabs.tab("CLOTHING LOCK"), win, state)
     _build_graphics(graphics_spoofer_frame, graphic_editor_frame, state)
     _build_extra(subtabs.tab("EXTRA"), state)
+    asset_editor_tab.build(subtabs.tab("ASSETS"), win, state)
     _build_names(subtabs.tab("TEAM NAMES"), state)
 
 
@@ -720,9 +725,10 @@ def _build_style(tab, state):
 class _RecipeSignals(QObject):
     export_result = Signal(bool, str)
     import_result = Signal(bool, str)
+    skaterp_result = Signal(bool, str)   # result of a skater.p -> PS3 import
 
 
-def _build_recipes(tab, state):
+def _build_recipes(tab, win, state):
     signals = _RecipeSignals(tab)  # parented to the tab frame so it lives as long as the UI does
 
     layout = QVBoxLayout(tab)
@@ -756,10 +762,14 @@ def _build_recipes(tab, state):
     def do_export(path, skater):
         addr = RECIPE_ADDRESSES[skater]
         try:
-            data = state.ps3.Process.Memory.Get(state.pid, addr, RECIPE_LENGTH)
+            data = bytes(state.ps3.Process.Memory.Get(state.pid, addr, RECIPE_LENGTH))
+            # The memory block is zero-padded out to RECIPE_LENGTH. Trim all
+            # of that padding, then keep exactly one 00 on the end so a recipe
+            # whose real last byte is 00 still has it.
+            data = data.rstrip(b"\x00") + b"\x00"
             with open(path, "wb") as f:
                 f.write(data)
-            signals.export_result.emit(True, f"Skater {skater} recipe exported.")
+            signals.export_result.emit(True, f"Skater {skater} recipe exported ({len(data)} bytes).")
         except Exception as e:
             signals.export_result.emit(False, str(e))
 
@@ -772,6 +782,56 @@ def _build_recipes(tab, state):
             signals.import_result.emit(True, f"Skater {skater} recipe imported.")
         except Exception as e:
             signals.import_result.emit(False, str(e))
+
+    def do_import_skaterp(pairs):
+        """Write [(slot, ExtractedRecipe)] to the PS3. Each recipe is zero-padded out to
+        the full RECIPE_LENGTH block so nothing of the previous recipe is left behind."""
+        done = []
+        try:
+            for slot, recipe in pairs:
+                addr = RECIPE_ADDRESSES[slot]
+                payload = recipe.data[:RECIPE_LENGTH]
+                payload += b"\x00" * (RECIPE_LENGTH - len(payload))   # whole block, like a full export
+                state.ps3.Process.Memory.Set(state.pid, addr, payload)
+                back = bytes(state.ps3.Process.Memory.Get(state.pid, addr, len(payload)))
+                if back != payload:
+                    raise RuntimeError(f"Skater {slot}: the game didn't take the write.")
+                done.append(slot)
+        except Exception as e:
+            ok_part = f" (slots done: {', '.join(map(str, done))})" if done else ""
+            signals.skaterp_result.emit(False, f"{e}{ok_part}")
+            return
+        if len(done) == 1:
+            signals.skaterp_result.emit(True, f"Imported to Skater {done[0]}.")
+        else:
+            signals.skaterp_result.emit(True, f"Imported {len(done)} skaters to slots {done[0]}-{done[-1]}.")
+
+    dialog = {"ref": None}
+
+    def start_skaterp_import(pairs):
+        if not state.is_ready():
+            dialog["ref"].show_result(False, "Connect and attach first.")
+            return False
+        threading.Thread(target=do_import_skaterp, args=(pairs,), daemon=True).start()
+        return True
+
+    def open_skaterp(path):
+        try:
+            sp = skaterp_extractor.read_skater_p(path)
+        except skaterp_extractor.SkaterPError as e:
+            status_lbl.setText(str(e))
+            return
+        try:
+            folder = skaterp_extractor.export_skaters(sp, os.path.join(export_dir("recipes"), "saves"))
+        except skaterp_extractor.SkaterPError as e:
+            folder = ""
+            status_lbl.setText(str(e))
+        else:
+            n = len(sp.skaters)
+            status_lbl.setText(f"{n} skater{'s' if n != 1 else ''} exported to {os.path.relpath(folder, export_dir('recipes'))}")
+        dlg = SkaterPImportDialog(win, sp, folder, _skater_num(skater_dd), start_skaterp_import)
+        dialog["ref"] = dlg
+        dlg.show()
 
     # -- UI callbacks -------------------------------------------------------
 
@@ -791,15 +851,19 @@ def _build_recipes(tab, state):
         threading.Thread(target=do_export, args=(path, skater), daemon=True).start()
 
     def on_import_clicked():
-        if not state.is_ready():
-            status_lbl.setText("Connect and attach first.")
-            return
         skater = _skater_num(skater_dd)
         path, _ = QFileDialog.getOpenFileName(
-            import_btn, "Import Recipe", export_dir("recipes"), "Recipe Files (*.recipe)"
+            import_btn, "Import Recipe or Skater.p", export_dir("recipes"),
+            "Recipe / Save Files (*.recipe *.RECIPE *.p *.P)"
         )
         if not path:
             return  # user cancelled the open dialog
+        if os.path.splitext(path)[1].lower() == ".p":
+            open_skaterp(path)   # a save: extract its skaters, then pick what to import
+            return
+        if not state.is_ready():
+            status_lbl.setText("Connect and attach first.")
+            return
         status_lbl.setText("Importing...")
         import_btn.setEnabled(False)
         threading.Thread(target=do_import, args=(path, skater), daemon=True).start()
@@ -816,6 +880,13 @@ def _build_recipes(tab, state):
     import_btn.clicked.connect(on_import_clicked)
     signals.export_result.connect(on_export_result)
     signals.import_result.connect(on_import_result)
+
+    def on_skaterp_result(ok, msg):
+        status_lbl.setText(msg)
+        if dialog["ref"] is not None:
+            dialog["ref"].show_result(ok, msg)
+
+    signals.skaterp_result.connect(on_skaterp_result)
 
 
 # ---------------------------------------------------------------------------

@@ -1,9 +1,9 @@
 """
-dxt5_encoder.py
-===============
-A small, plain DXT5 (BC3) block encoder - not the fastest or the highest
-quality possible, but correct and dependency-free (just numpy), which is
-all the small 256x128 UI/logo-style textures dds_builder.py needs this for.
+Minimal DXT5 (BC3) block encoder.
+
+Not the fastest or highest-quality possible encoder, but correct and
+dependency-free (just numpy). Good enough for small UI/logo-style textures
+like the 256x128 graphic slots used here.
 """
 
 import numpy as np
@@ -41,8 +41,7 @@ def _encode_color_block(pixels_rgb: np.ndarray) -> bytes:
         mean = px.mean(axis=0)
         centered = px - mean
         cov = centered.T @ centered
-        # find the block's dominant color direction (a few passes is enough
-        # for a 3x3 matrix like this)
+        # principal axis via power iteration (3x3, a couple iterations is plenty)
         axis = np.array([1.0, 1.0, 1.0])
         for _ in range(8):
             axis = cov @ axis
@@ -99,7 +98,7 @@ def _encode_alpha_block(alphas: np.ndarray) -> bytes:
         a0, a1 = a_max, a_min
         indices = np.zeros(16, dtype=np.uint8)
     else:
-        a0, a1 = a_max, a_min  # a0 > a1 selects the 8-alpha interpolation mode
+        a0, a1 = a_max, a_min  # 8-alpha interpolation mode (a0 > a1)
         levels = np.array([
             a0,
             a1,
