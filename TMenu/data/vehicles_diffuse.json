@@ -1,0 +1,75 @@
+{
+  "fourdoor_sedan_01": {
+    "Accessory": "2C7F381800172781",
+    "Equipment": "00001F1903E38818"
+  },
+  "hatchback_01": {
+    "Accessory": "00001F1703E38818",
+    "Equipment": "00001F1903E38818"
+  },
+  "minivan_01": {
+    "Accessory": "2C7F3818001727BB",
+    "Equipment": "00001F0403E38818"
+  },
+  "mongo_patrol_01": {
+    "Accessory": "0000200603E38818",
+    "Equipment": "0000200803E38818"
+  },
+  "muscle_car_01": {
+    "Accessory": "2C7F3818001727C3",
+    "Equipment": "00001F1D03E38818"
+  },
+  "older_sedan_01": {
+    "Accessory": "00001FFA03E38818",
+    "Equipment": "00001FFD03E38818"
+  },
+  "pickup_truck_01": {
+    "Accessory": "00001F1F03E38818",
+    "Equipment": "00001F2203E38818"
+  },
+  "pickup_truck_02": {
+    "Accessory": "00001FF603E38818",
+    "Equipment": "00001FF903E38818"
+  },
+  "reda_car": {
+    "Accessory": "0000200C03E38818",
+    "Equipment": "0000200A03E38818",
+    "Misc": "0000200C03E38818"
+  },
+  "sedan_4door_02": {
+    "Accessory": "2C7F3818001727B7",
+    "Equipment": "00001FF503E38818"
+  },
+  "sedan_4door_03": {
+    "Accessory": "2C7F3818001727B8",
+    "Equipment": "0000201003E38818"
+  },
+  "sports_car_01": {
+    "Accessory": "2C7F3818001727BF",
+    "Equipment": "00001F2903E38818"
+  },
+  "sports_car_02": {
+    "Accessory": "2C7F3818001727C0",
+    "Equipment": "0000200003E38818"
+  },
+  "sports_car_03": {
+    "Accessory": "2C7F3818001727C2",
+    "Equipment": "0000200403E38818"
+  },
+  "suv_01": {
+    "Accessory": "2C7F3818001727BD",
+    "Equipment": "00001F2D03E38818"
+  },
+  "suv_02": {
+    "Accessory": "2C7F3818001727BE",
+    "Equipment": "00001FF003E38818"
+  },
+  "taxi_sedan_01": {
+    "Accessory": "2C7F3818001727BC",
+    "Equipment": "00001F3103E38818"
+  },
+  "z_pipeline_lw_vih": {
+    "Accessory": "2C7F381800020057",
+    "Equipment": "2C7F38180002005A"
+  }
+}

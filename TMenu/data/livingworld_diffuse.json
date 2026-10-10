@@ -1,0 +1,254 @@
+{
+  "big_black_lw": {
+    "Rostral": "00001F3303E38818"
+  },
+  "female_adult_1": {
+    "Hair": "00001F3503E38818",
+    "Rostral": "00001F3803E38818"
+  },
+  "female_adult_2": {
+    "Hair": "00001F3A03E38818",
+    "Rostral": "00001F3D03E38818"
+  },
+  "female_adult_3": {
+    "Hair": "00001F3F03E38818",
+    "Rostral": "00001F4203E38818"
+  },
+  "female_business_1": {
+    "Hair": "00001F4503E38818",
+    "Rostral": "00001F4703E38818"
+  },
+  "female_business_2": {
+    "Hair": "00001F4A03E38818",
+    "Rostral": "00001F4C03E38818"
+  },
+  "female_business_3": {
+    "Rostral": "00001F4E03E38818"
+  },
+  "female_granny_1": {
+    "Rostral": "2C7F381800020450"
+  },
+  "female_granny_2": {
+    "Rostral": "00001F5203E38818",
+    "Accessory": "00001F5503E38818"
+  },
+  "female_skater_1": {
+    "Hair": "00001F5803E38818",
+    "Rostral": "00001F5903E38818"
+  },
+  "female_skater_2": {
+    "Hair": "00001F5C03E38818",
+    "Rostral": "00001F5E03E38818"
+  },
+  "female_skater_3": {
+    "Hair": "00001F6103E38818",
+    "Rostral": "00001F6303E38818"
+  },
+  "female_teenager_1": {
+    "Rostral": "00001F6503E38818"
+  },
+  "female_teenager_2": {
+    "Hair": "00001F6803E38818",
+    "Rostral": "00001F6A03E38818"
+  },
+  "female_teenager_3": {
+    "Hair": "00001F6D03E38818",
+    "Rostral": "00001F6F03E38818"
+  },
+  "female_tourist_1": {
+    "Hair": "00001F7203E38818",
+    "Rostral": "00001F7403E38818"
+  },
+  "female_tourist_2": {
+    "Hair": "00001F7703E38818",
+    "Rostral": "00001F7903E38818"
+  },
+  "female_tourist_3": {
+    "Hair": "00001F7B03E38818",
+    "Rostral": "00001F7E03E38818"
+  },
+  "male_adult_1": {
+    "Rostral": "00001F8103E38818"
+  },
+  "male_adult_2": {
+    "Rostral": "00001F8303E38818"
+  },
+  "male_adult_3": {
+    "Rostral": "00001F8703E38818"
+  },
+  "male_ambassadors_big": {
+    "Rostral": "2C7F38180002008F"
+  },
+  "male_ambassadors_medium": {
+    "Rostral": "2C7F381800020090"
+  },
+  "male_bum_1": {
+    "Rostral": "00001F8D03E38818"
+  },
+  "male_bum_2": {
+    "Rostral": "00001F8F03E38818"
+  },
+  "male_bum_3": {
+    "Rostral": "00001E2403E38818"
+  },
+  "male_business_1": {
+    "Rostral": "00001F9103E38818"
+  },
+  "male_business_2": {
+    "Rostral": "00001F9303E38818"
+  },
+  "male_business_3": {
+    "Rostral": "00001F9503E38818"
+  },
+  "male_jock_1": {
+    "Rostral": "00001F9703E38818"
+  },
+  "male_jock_2": {
+    "Rostral": "00001F9903E38818"
+  },
+  "male_jock_3": {
+    "Rostral": "00001F9B03E38818"
+  },
+  "male_securityguard_1": {
+    "Rostral": "00001F9D03E38818"
+  },
+  "male_securityguard_2": {
+    "Rostral": "00001F9F03E38818"
+  },
+  "male_securityguard_3": {
+    "Rostral": "00001FA103E38818"
+  },
+  "male_skater_1": {
+    "Hair": "00001FA303E38818",
+    "Rostral": "00001FA603E38818"
+  },
+  "male_skater_2": {
+    "Rostral": "00001FA803E38818"
+  },
+  "male_skater_3": {
+    "Hair": "00001FAA03E38818",
+    "Rostral": "00001FAD03E38818"
+  },
+  "male_teenager_1": {
+    "Hair": "00001FB003E38818",
+    "Rostral": "00001FB303E38818"
+  },
+  "male_teenager_2": {
+    "Rostral": "00001FB503E38818"
+  },
+  "male_teenager_3": {
+    "Hair": "00001FB703E38818",
+    "Rostral": "00001FBA03E38818"
+  },
+  "male_tourist_1": {
+    "Rostral": "00001FBC03E38818"
+  },
+  "male_tourist_2": {
+    "Hair": "00001FBE03E38818",
+    "Rostral": "00001FC103E38818"
+  },
+  "male_tourist_3": {
+    "Hair": "00001FC303E38818",
+    "Rostral": "00001FC603E38818"
+  },
+  "male_worker_1": {
+    "Rostral": "2C7F38180008011B"
+  },
+  "male_worker_2": {
+    "Rostral": "2C7F38180008011D"
+  },
+  "male_worker_3": {
+    "Rostral": "2C7F38180008011A"
+  },
+  "male_worker_4": {
+    "Rostral": "2C7F38180008011C"
+  },
+  "male_worker_5": {
+    "Rostral": "2C7F381800020093"
+  },
+  "male_worker_6": {
+    "Rostral": "2C7F381800020092"
+  },
+  "z_pipeline_lw_ped": {
+    "Rostral": "2C7F381800020054"
+  },
+  "zprop_beachball": {
+    "Accessory": "00001FD103E38818"
+  },
+  "zprop_big_camera": {
+    "Accessory": "2C7F38180017264A"
+  },
+  "zprop_bleachers": {
+    "Accessory": "2C7F381800172646"
+  },
+  "zprop_coffee_cup": {
+    "Accessory": "00001FD303E38818"
+  },
+  "zprop_couch": {
+    "Accessory": "00001FD503E38818"
+  },
+  "zprop_crumpled_paper": {
+    "Accessory": "00001FD703E38818"
+  },
+  "zprop_dumpster": {
+    "Accessory": "2C7F38180017237C"
+  },
+  "zprop_garbage_can": {
+    "Accessory": "2C7F381800171F08"
+  },
+  "zprop_ghettoBlaster": {
+    "Accessory": "2C7F381800172383"
+  },
+  "zprop_jumbo_sign": {
+    "Accessory": "2C7F38180017264C",
+    "Equipment": "2C7F38180017264E"
+  },
+  "zprop_mediatower": {
+    "Accessory": "2C7F381800172650"
+  },
+  "zprop_paperwrapped_bottle": {
+    "Accessory": "00001FD903E38818"
+  },
+  "zprop_patio_chair": {
+    "Accessory": "00001FDB03E38818"
+  },
+  "zprop_patio_table": {
+    "Accessory": "00001FDD03E38818"
+  },
+  "zprop_patio_umbrella": {
+    "Accessory": "00001FDF03E38818"
+  },
+  "zprop_pen": {
+    "Accessory": "2C7F381800172778"
+  },
+  "zprop_picnicTable_wood": {
+    "Accessory": "2C7F38180017237F"
+  },
+  "zprop_podium": {
+    "Accessory": "2C7F381800172779"
+  },
+  "zprop_pop_can": {
+    "Accessory": "00001FE103E38818"
+  },
+  "zprop_portapotty": {
+    "Accessory": "2C7F38180017266A"
+  },
+  "zprop_poster_01": {
+    "Accessory": "2C7F381800172775"
+  },
+  "zprop_poster_02": {
+    "Accessory": "2C7F381800172774"
+  },
+  "zprop_rail": {
+    "Accessory": "2C7F381800171F0B"
+  },
+  "zprop_saftybarrier": {
+    "Accessory": "2C7F381800172654"
+  },
+  "zprop_tent": {
+    "Accessory": "2C7F381800172655"
+  },
+  "zprop_waterbottle": {
+    "Accessory": "00001FE303E38818"
+  }
+}
