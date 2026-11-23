@@ -33,11 +33,11 @@ TMenu connects to a PS3 running [webMAN-MOD](https://github.com/aldostools/webMA
 - **Connection** — connect to your PS3's IP and attach to the running game
 - **Edit Skater** — per-skater (1–5) editing: RGB colors, RGB swapping, body/face sliders, stance/style/posture, clothing recipes (including importing straight from a `skater.p` save), an **Assets** editor, clothing lock, graphics, invisible parts, gender, team & player names
 - **Challenge** — **Party Play** (Better Party Play, 1 Player Party Play) and **Timers** (bail/ragdoll/HoM/S.K.A.T.E./1up/spot-battle timers; leave a box empty and SET writes the vanilla default)
-- **Toggleables** — on-board, off-board, environment, and misc gameplay toggles
+- **Toggleables** — on-board, off-board, environment, and misc gameplay toggles (see [Toggleables](#toggleables) below)
 - **Adjustables** — global values like ollie height, jump height, and plant height
 - **Visuals** — transparency, field of view, fog color/density/distance, HUD score multiplier, exposure, and more
 - **Park** — edit the RGB grid for custom park pieces, editor border controls, and (**Open World** subtab) Park Editor / Object Dropper / Park Saving for free-roam
-- **Online** — challenge editing, server options, online toggleables, and a teleporter
+- **Online** — challenge editing, server options, online toggleables, and a player list
 - **Save** — difficulty and stats editing
 - **Misc** — debug camera and animation debug
 - **Binds** — assign system-wide keyboard hotkeys to almost any toggle or value in the app, so they work even while the game window has focus
@@ -73,6 +73,31 @@ Every asset edit reads the recipe fresh from the game, changes only the bytes it
 - **Party Play** — *Better Party Play* is a normal on/off toggle (it used to live under Toggleables > Misc). *1 Player Party Play* is a one-way button, not a toggle: press it on the Party Play player-amount screen **without changing your selection**, then press X in-game.
 - **Timers** — Ragdoll Settled Timer, Hall Of Meat Timer, Ragdoll Settle Time, S.K.A.T.E. Timer, 1up Timer, Hall Of Meat Challenge Timer and 15 Second Spot Battle Timer. Each is a float field with GET/SET; an empty box falls back to the greyed-out vanilla default. They're included in SAVE CONFIG / RESET EVERYTHING and can be bound in BINDS.
 
+## Toggleables
+
+Each toggle is a button that flips a patch on or off (the button is bold while it's on). Every toggle can also be bound to a hotkey in **Binds**.
+
+**On Board**
+- **No Fall Damage**, **Footplant Forever**, **No Footplant Damage**, **No Air Timer**
+- **No Speed Cap** — removes the skater's top speed limit.
+- **Tally's No Fall™** — the full No Fall set in one button: it removes fall damage, the air timer and the speed cap, and removes the fall limit. It shares addresses with **No Air Timer** and **No Speed Cap**, so turning it on or off also changes those two patches. Their buttons won't show the new state until you refresh or reattach.
+
+**Off Board** — Walk In Air, No HoM Timer
+
+**Environment** — No Peds & Traffic, Mute Environment
+
+**Misc**
+- **Unlock All**, **Walk / Skate Out Of Bounds**
+- **Set Marker Anywhere** — lets you place the marker anywhere.
+
+## EBOOT (No Crash EBOOT)
+
+The `EBOOT/` folder holds a modified `EBOOT.BIN` for Skate 3 (`EBOOT/EBOOT.BIN`). It's a **no crash EBOOT**: if you desync online, it protects you from the crash, so you stay in the game instead of being kicked out.
+
+To use it, replace the game's `EBOOT.BIN` with this one. **Back up your original `EBOOT.BIN` first**, so you can put it back if you need to.
+
+TMenu doesn't need the no crash EBOOT to run. It's optional, but recommended if you play online. See the disclaimer below: using TMenu online can still desync you from other players.
+
 ## Project layout
 
 ```
@@ -88,6 +113,8 @@ TMenu/
   Default Recipes/  shipped default recipes (one subfolder per category)
   build/            build.bat, version files, icon
   _legacy/          unused modules kept for reference
+EBOOT/
+  EBOOT.BIN         no crash EBOOT (protects you from the crash if you desync online)
 ```
 
 ## Running from source
