@@ -43,13 +43,35 @@ SCREEN_FIELDS = [
     simple_float_field("Screen Width", 0x018405E0, default=-1.875),
 ]
 
-# HUD score multiplier - ScoreX2/X3 always sit at 2x/3x whatever ScoreX1 is
-# set to (e.g. typing 30 makes ScoreX1/X2/X3 30/60/90). One field controls
-# all three; see visuals_tab.py's _build_hud for the custom widget.
+# HUD score multiplier - the typed base value is scaled by 1 / 0.5 / 0.25
+# for ScoreX1 / X2 / X3 (e.g. typing 30 writes 30 / 15 / 7.5; the default
+# base of 1 gives the vanilla 1 / 0.5 / 0.25). One field controls all
+# three; see visuals_tab.py's _build_hud for the custom widget.
 SCORE_X1_ADDRESS = 0x40E68240
 SCORE_X2_ADDRESS = 0x40E68244
 SCORE_X3_ADDRESS = 0x40E68248
 SCORE_MULTIPLIER_DEFAULT = 1.0
+# Factor applied to the base value for each address, in X1/X2/X3 order.
+SCORE_MULTIPLIER_FACTORS = (1.0, 0.5, 0.25)
+SCORE_ADDRESSES = (SCORE_X1_ADDRESS, SCORE_X2_ADDRESS, SCORE_X3_ADDRESS)
+
+
+def read_score_multiplier(state) -> float:
+    """Reads ScoreX1/X2/X3 (three consecutive floats), divides each by its
+    factor (1 / 0.5 / 0.25) and returns the base value. All three should
+    agree - if they don't (something else changed one of them), returns
+    SCORE_MULTIPLIER_DEFAULT so the box shows 1 and the person can simply
+    SET the value they want. Blocking memory read - call off the GUI thread
+    when possible."""
+    raw = bytes(state.ps3.Process.Memory.Get(state.pid, SCORE_X1_ADDRESS, 12))
+    bases = [
+        struct.unpack(">f", raw[i * 4:i * 4 + 4])[0] / factor
+        for i, factor in enumerate(SCORE_MULTIPLIER_FACTORS)
+    ]
+    first = bases[0]
+    if all(abs(b - first) <= max(1e-4, abs(first) * 1e-4) for b in bases[1:]):
+        return first
+    return SCORE_MULTIPLIER_DEFAULT
 
 # HUD Exposure - one plain float field, laid out in the HUD subtab
 # alongside Score Multiplier and Glitchy Text (toggleables_data.HUD_TOGGLES).

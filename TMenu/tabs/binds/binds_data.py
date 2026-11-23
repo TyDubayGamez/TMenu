@@ -62,6 +62,7 @@ from tabs.adjustables_data import ON_BOARD_FIELDS, OFF_BOARD_FIELDS
 from tabs.visuals_data import (
     ADJUSTABLES_FIELDS, ENVIRONMENT_FIELDS, SCREEN_FIELDS,
     SCORE_X1_ADDRESS, SCORE_X2_ADDRESS, SCORE_X3_ADDRESS, SCORE_MULTIPLIER_DEFAULT,
+    SCORE_MULTIPLIER_FACTORS, SCORE_ADDRESSES, read_score_multiplier,
 )
 from tabs import online_data
 from tabs.challenge.challenge_data import PARTY_PLAY_TOGGLES, TIMER_FIELDS
@@ -173,19 +174,18 @@ _FREESKATE_ITEMS = {
 # ---------------------------------------------------------------------------
 
 def _score_get(state):
-    raw = bytes(state.ps3.Process.Memory.Get(state.pid, SCORE_X1_ADDRESS, 4))
-    return struct.unpack(">f", raw)[0]
+    return read_score_multiplier(state)
 
 
 def _score_set(state, value):
-    for addr, mult in ((SCORE_X1_ADDRESS, 1), (SCORE_X2_ADDRESS, 2), (SCORE_X3_ADDRESS, 3)):
-        state.ps3.Process.Memory.Set(state.pid, addr, struct.pack(">f", float(value) * mult))
+    for addr, factor in zip(SCORE_ADDRESSES, SCORE_MULTIPLIER_FACTORS):
+        state.ps3.Process.Memory.Set(state.pid, addr, struct.pack(">f", float(value) * factor))
     session_changes.mark_hud_score_multiplier(float(value), SCORE_MULTIPLIER_DEFAULT)
 
 
 _HUD_ITEMS = {
     "score_multiplier": {
-        "label": "Score Multiplier (Base x1)",
+        "label": "Score Multiplier (Base)",
         "kind": "float",
         "default": SCORE_MULTIPLIER_DEFAULT,
         "get": _score_get,

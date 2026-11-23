@@ -72,6 +72,25 @@ ONBOARD_TOGGLES = {
             {"address": 0x00D52B80, "off": _i("801F002C"), "on": _i("60000000")},
         ],
     },
+    "No Speed Cap": {
+        "writes": [
+            {"address": 0x00A7EA74, "off": _i("98090045"), "on": _i("60000000")},
+        ],
+    },
+    # Full No Fall set. Shares 0xD52B80 with "No Air Timer" and 0xA7EA74 with
+    # "No Speed Cap". First write (0xD699B0) is unique to this toggle, so it
+    # decides whether the button reads as on. C1A25100 = lfs f13,0x5100(r2),
+    # forcing f13 = 1.0.
+    "Tally's No Fall™": {
+        "writes": [
+            {"address": 0x00D699B0, "off": _i("C1BF00C0"), "on": _i("C1A25100")},
+            {"address": 0x00D59DB8, "off": _i("C1BF00C0"), "on": _i("C1A25100")},
+            {"address": 0x00ABED14, "off": _i("987D0D93"), "on": _i("60000000")},
+            {"address": 0x00A7EA74, "off": _i("98090045"), "on": _i("60000000")},
+            {"address": 0x00D52B80, "off": _i("801F002C"), "on": _i("60000000")},
+            {"address": 0x40E5F37C, "off": _f(11.19999981), "on": _f(float("inf"))},
+        ],
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -152,6 +171,11 @@ MISC_TOGGLES = {
         "writes": [
             {"address": 0x00D96484, "off": _i("98030045"), "on": _i("60000000")},
             {"address": 0x00D964A4, "off": _i("98030041"), "on": _i("60000000")},
+        ],
+    },
+    "Set Marker Anywhere": {
+        "writes": [
+            {"address": 0x006932A4, "off": _i("987F1549"), "on": _i("60000000")},
         ],
     },
 }

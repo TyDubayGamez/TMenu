@@ -36,6 +36,7 @@ from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 
 from ui.TsUI_qt import MetroButton, MetroLabel, MetroTextBox, MetroGroupBox, MetroSwitch
 from core.connection_core import do_connect_and_attach
+from core.gui_refresh import on_scan_change
 
 
 class _Signals(QObject):
@@ -52,16 +53,24 @@ def build(parent_tab, win, state, settings=None):
     layout.setContentsMargins(0, 30, 0, 0)
 
     group = MetroGroupBox(parent_tab, title="Connection")
-    group.setFixedWidth(250)
+    group.setFixedWidth(290)
     layout.addWidget(group, alignment=Qt.AlignHCenter)
 
-    ip_box = MetroTextBox(group, width=200, height=26)
+    ip_box = MetroTextBox(group, width=256, height=28)
     ip_box.setPlaceholderText("PS3 IP address")
     if settings is not None and settings.last_ip:
         ip_box.setText(settings.last_ip)
 
-    connect_btn = MetroButton(group, text="CONNECT", width=200)
-    disconnect_btn = MetroButton(group, text="DISCONNECT", width=200)
+    # CONNECT / DISCONNECT side by side instead of two full-width buttons.
+    btn_row = QWidget(group)
+    btn_row.setStyleSheet("background: transparent;")
+    btn_row_layout = QHBoxLayout(btn_row)
+    btn_row_layout.setContentsMargins(0, 0, 0, 0)
+    btn_row_layout.setSpacing(10)
+    connect_btn = MetroButton(btn_row, text="CONNECT", width=123, height=32)
+    disconnect_btn = MetroButton(btn_row, text="DISCONNECT", width=123, height=32)
+    btn_row_layout.addWidget(connect_btn)
+    btn_row_layout.addWidget(disconnect_btn)
 
     if state.is_ready():
         initial_status = f"Attached to {state.attached_name}" if state.attached_name else "Connected"
@@ -73,7 +82,7 @@ def build(parent_tab, win, state, settings=None):
     status_lbl.setAlignment(Qt.AlignCenter)
     status_lbl.setWordWrap(True)
 
-    for w in (ip_box, connect_btn, disconnect_btn):
+    for w in (ip_box, btn_row):
         group.add(w)
 
     # -- Auto-connect switch --------------------------------------------
@@ -100,6 +109,24 @@ def build(parent_tab, win, state, settings=None):
 
     group.add(status_lbl)
 
+    # The status shows the last connect/disconnect message, plus the live
+    # state of the background offset scan (state.scanning etc.) underneath
+    # it - so the user sees "Scanning for offsets..." instead of a stuck
+    # "Connecting...", and the rest of the tool stays usable meanwhile.
+    base_msg = [status_lbl.text()]
+
+    def render_status():
+        text = base_msg[0]
+        if state.scanning:
+            text += "\nScanning for offsets... (you can keep using the tool)"
+        elif state.scan_error:
+            text += f"\n{state.scan_error}"
+        elif state.scan_completed:
+            text += "\nOffsets ready."
+        status_lbl.setText(text)
+
+    on_scan_change(state, group, render_status)
+
     # -- background work (runs off the GUI thread) ------------------------
 
     def do_connect():
@@ -118,26 +145,34 @@ def build(parent_tab, win, state, settings=None):
         state.connected = False
         state.attached = False
         state.attached_name = ""
+        state.set_scan_status(False)
         signals.disconnect_result.emit(True, "Disconnected.")
 
     # -- UI callbacks -------------------------------------------------------
 
     def on_connect_clicked():
-        status_lbl.setText("Connecting...")
+        base_msg[0] = "Connecting..."
+        if not state.scanning:
+            state.scan_completed = False
+            state.scan_error = ""
+        render_status()
         connect_btn.setEnabled(False)
         threading.Thread(target=do_connect, daemon=True).start()
 
     def on_disconnect_clicked():
-        status_lbl.setText("Disconnecting...")
+        base_msg[0] = "Disconnecting..."
+        status_lbl.setText(base_msg[0])
         disconnect_btn.setEnabled(False)
         threading.Thread(target=do_disconnect, daemon=True).start()
 
     def on_connect_result(ok, msg):
-        status_lbl.setText(msg)
+        base_msg[0] = msg
+        render_status()
         connect_btn.setEnabled(True)
 
     def on_disconnect_result(ok, msg):
-        status_lbl.setText(msg)
+        base_msg[0] = msg
+        render_status()
         disconnect_btn.setEnabled(True)
         connect_btn.setEnabled(True)
 

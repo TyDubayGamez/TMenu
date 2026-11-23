@@ -25,7 +25,7 @@ where row_index/col_index are 0-based (Row 1/Column 1 -> index 0).
 import struct
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QVBoxLayout, QGridLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget
 
 from ui.TsUI_qt import MetroButton, MetroLabel, MetroTextBox, MetroGroupBox, MetroDropdown, MetroTabControl
 from ui.color_picker import open_color_picker
@@ -370,25 +370,36 @@ def _build_rgb(tab, win, state):
     layout.setContentsMargins(0, 20, 0, 0)
 
     group = MetroGroupBox(tab, title="Park RGB")
-    group.setFixedWidth(250)
+    group.setFixedWidth(420)
     layout.addWidget(group, alignment=Qt.AlignHCenter)
 
-    row_lbl = MetroLabel(group, text="Row")
-    row_lbl.setAlignment(Qt.AlignCenter)
-    group.add(row_lbl)
+    # Two columns: Row/Col pickers on the left, the three color boxes on the
+    # right, then PICK / GET / SET in one row underneath - so the whole card
+    # stays short instead of one tall stack.
+    top_row = QWidget(group)
+    top_row.setStyleSheet("background: transparent;")
+    top_row_layout = QHBoxLayout(top_row)
+    top_row_layout.setContentsMargins(0, 0, 0, 0)
+    top_row_layout.setSpacing(24)
+    group.add(top_row)
 
-    row_dd = MetroDropdown(group, items=[str(i) for i in range(1, PARK_RGB_ROWS + 1)], width=200)
-    group.add(row_dd)
+    pick_col = QWidget(top_row)
+    pick_col.setStyleSheet("background: transparent;")
+    pick_col_layout = QVBoxLayout(pick_col)
+    pick_col_layout.setContentsMargins(0, 0, 0, 0)
+    pick_col_layout.setSpacing(4)
+    top_row_layout.addWidget(pick_col, alignment=Qt.AlignTop)
 
-    col_lbl = MetroLabel(group, text="Col")
-    col_lbl.setAlignment(Qt.AlignCenter)
-    group.add(col_lbl)
+    pick_col_layout.addWidget(MetroLabel(pick_col, text="Row"))
+    row_dd = MetroDropdown(pick_col, items=[str(i) for i in range(1, PARK_RGB_ROWS + 1)], width=140)
+    pick_col_layout.addWidget(row_dd)
+    pick_col_layout.addWidget(MetroLabel(pick_col, text="Col"))
+    col_dd = MetroDropdown(pick_col, items=[str(i) for i in range(1, PARK_RGB_COLS + 1)], width=140)
+    pick_col_layout.addWidget(col_dd)
 
-    col_dd = MetroDropdown(group, items=[str(i) for i in range(1, PARK_RGB_COLS + 1)], width=200)
-    group.add(col_dd)
-
-    grid_holder = QWidget(group)
+    grid_holder = QWidget(top_row)
     grid_holder.setStyleSheet("background: transparent;")
+    top_row_layout.addWidget(grid_holder, alignment=Qt.AlignTop)
     grid = QGridLayout(grid_holder)
     grid.setContentsMargins(0, 4, 0, 4)
     grid.setHorizontalSpacing(8)
@@ -402,16 +413,18 @@ def _build_rgb(tab, win, state):
         grid.addWidget(lbl, grid_row, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         grid.addWidget(box, grid_row, 1, alignment=Qt.AlignRight)
         boxes[channel] = box
-    group.add(grid_holder)
 
-    picker_btn = MetroButton(group, text="PICK COLOR", width=200)
-    group.add(picker_btn)
-
-    get_btn = MetroButton(group, text="GET RGB", width=200)
-    group.add(get_btn)
-
-    set_btn = MetroButton(group, text="SET RGB", width=200)
-    group.add(set_btn)
+    btn_row = QWidget(group)
+    btn_row.setStyleSheet("background: transparent;")
+    btn_row_layout = QHBoxLayout(btn_row)
+    btn_row_layout.setContentsMargins(0, 0, 0, 0)
+    btn_row_layout.setSpacing(8)
+    picker_btn = MetroButton(btn_row, text="PICK COLOR", width=122, height=30)
+    get_btn = MetroButton(btn_row, text="GET RGB", width=122, height=30)
+    set_btn = MetroButton(btn_row, text="SET RGB", width=122, height=30)
+    for b in (picker_btn, get_btn, set_btn):
+        btn_row_layout.addWidget(b)
+    group.add(btn_row)
 
     status_lbl = MetroLabel(group, text="")
     status_lbl.setAlignment(Qt.AlignCenter)
@@ -564,14 +577,12 @@ def _build_editor_border(tab, state):
 
     register_synced_button("No Black Screen", no_black_screen_btn)
 
-    def _refresh_no_black_screen_bold():
+    def _apply_no_black_screen_bold(is_on):
         # Silent, same "leave it as-is on a bad read" rule as
         # toggleables_tab.py's own refresh - covers the case where this
         # button is what's on-screen first and VISUALS>TOGGLEABLES hasn't
-        # been built/attached-through yet.
-        try:
-            set_bold_everywhere("No Black Screen", _no_black_screen_is_on())
-        except Exception:
-            pass
+        # been built/attached-through yet. The read (a failed read just
+        # skips this) happens on a background thread.
+        set_bold_everywhere("No Black Screen", is_on)
 
-    on_attach_refresh(state, group, _refresh_no_black_screen_bold)
+    on_attach_refresh(state, group, _apply_no_black_screen_bold, read=_no_black_screen_is_on)

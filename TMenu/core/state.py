@@ -31,6 +31,13 @@ class AppState:
         self.attached = False
         self.attached_name = ""
         self.on_attach = []
+        # Background AOB scan status (see animations_data.ensure_cache_async).
+        # `scan_listeners` are no-arg callables fired from whichever thread
+        # changed the status - GUI code must bridge them (gui_refresh.on_scan_change).
+        self.scanning = False
+        self.scan_completed = False
+        self.scan_error = ""
+        self.scan_listeners = []
 
     @property
     def pid(self) -> int:
@@ -45,6 +52,18 @@ class AppState:
         callback's exception stop the rest, or bubble up into the connect
         worker thread that called this."""
         for cb in list(self.on_attach):
+            try:
+                cb()
+            except Exception:
+                pass
+
+    def set_scan_status(self, scanning, completed=False, error=""):
+        """Updates the background-scan flags and tells every listener. Safe
+        to call from any thread; a listener's exception never propagates."""
+        self.scanning = scanning
+        self.scan_completed = completed
+        self.scan_error = error
+        for cb in list(self.scan_listeners):
             try:
                 cb()
             except Exception:

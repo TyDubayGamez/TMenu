@@ -2,7 +2,7 @@
 online_data.py
 ================
 Address/data constants for the ONLINE tab's four subtabs (CHALLENGES /
-SERVER / TOGGLEABLES / TELEPORTER). Mirrors the toggleables_tab /
+SERVER / TOGGLEABLES / PLAYERS). Mirrors the toggleables_tab /
 toggleables_data split - this file has no UI code, just addresses, presets,
 JSON paths, and the small pack/unpack helpers the ONLINE tab's subtabs
 share.
@@ -41,6 +41,12 @@ CHALLENGE_TYPE_FIELD_WIDTH = 32
 # type, "53" (Spot Battle) is what it's set back to for off.
 FREESKATE_TYPE_ON = "22"
 FREESKATE_TYPE_OFF = "53"
+
+# Allow Proposals (ONLINE > TOGGLEABLES) - not a real toggle, every click just
+# writes "true" + a 00 terminator (5 bytes) so it fully overwrites the 5-char
+# word "false" that's normally there. Address is exactly as given (9 hex digits).
+ADDR_ALLOW_PROPOSALS = 0x3019AB600
+ALLOW_PROPOSALS_BYTES = b"true\x00"
 
 # -- Server --------------------------------------------------------------------
 IP_FIELD_ADDRESS = 0x01537528
@@ -85,6 +91,54 @@ TELEPORT_FLAG_2 = 0x47C68157
 TELEPORT_Y_OFFSET = 0.5
 
 VEC3_BE = struct.Struct(">fff")  # X, Y, Z packed as big-endian floats
+
+# -- Reset Player (RTM) -----------------------------------------------------------
+# Patches the function at RESET_FUNC_ADDR from `lwz r9,4(r3)` to `li r9,N`
+# (N = the player's slot, 0-5), pokes the two trigger bytes (the same two as
+# TELEPORT_FLAG_1/2) to 0x02, waits, then puts the original bytes back.
+RESET_FUNC_ADDR = 0x00698244
+RESET_FUNC_ORIG = bytes.fromhex("81230004")
+# TELEPORT_FLAG_1 (...DD0) is the debug cam write - the reset does NOT touch it
+# (the teleport that runs just before the reset already did). Only the other
+# trigger byte is poked here.
+RESET_EXTRA_ADDRS = (TELEPORT_FLAG_2,)
+RESET_EXTRA_VALUE = 0x02
+RESET_RESTORE_DELAY = 2.0     # seconds after the last write, before restoring
+# 1 byte, 0-5: which player slot is the local player ("YOU")
+LOCAL_PLAYER_INDEX_ADDR = 0x301DE927
+
+
+def li_r9(n: int) -> bytes:
+    return (0x39200000 | n).to_bytes(4, "big")   # 39 20 00 0N
+
+
+# -- Player list (names of everyone in the online lobby) ------------------------
+# Player 1's name; each following slot sits PLAYER_NAME_STRIDE bytes apart.
+# Read in one go: 5 strides + one name field covers all 6 slots. A name that
+# starts with 0x00 is an empty slot; if player 1's first byte is 0xAB the game
+# isn't in an online lobby yet and the names aren't populated.
+PLAYER_NAME_BASE = 0x300853B8
+PLAYER_NAME_STRIDE = 0xA8
+PLAYER_NAME_MAX = 0x20
+PLAYER_LIST_READ_LEN = PLAYER_NAME_STRIDE * (NUM_SKATERS - 1) + PLAYER_NAME_MAX
+PLAYER_OFFLINE_MARKER = 0xAB
+
+
+def parse_player_names(raw: bytes):
+    """Returns (names, in_online_game). `names` has NUM_SKATERS entries, each
+    the ASCII name or None for an empty slot."""
+    raw = bytes(raw)
+    if raw and raw[0] == PLAYER_OFFLINE_MARKER:
+        return [None] * NUM_SKATERS, False
+    names = []
+    for i in range(NUM_SKATERS):
+        chunk = raw[i * PLAYER_NAME_STRIDE:i * PLAYER_NAME_STRIDE + PLAYER_NAME_MAX]
+        if not chunk or chunk[0] == 0:
+            names.append(None)
+            continue
+        end = chunk.find(b"\x00")
+        names.append(chunk[: end if end != -1 else len(chunk)].decode("ascii", errors="replace"))
+    return names, True
 
 
 # -- Shared pack/unpack helpers --------------------------------------------------

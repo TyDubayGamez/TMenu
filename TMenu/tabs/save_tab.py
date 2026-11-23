@@ -8,7 +8,7 @@ built with field_widgets.py like ADJUSTABLES/VISUALS use for floats).
 """
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 
 from ui.TsUI_qt import MetroButton, MetroLabel, MetroGroupBox, MetroDropdown, MetroTabControl
 from ui.field_widgets import build_float_grid, simple_int_field
@@ -36,11 +36,16 @@ def _build_difficulty(tab, state):
     dd = MetroDropdown(group, items=[label for _, label in DIFFICULTY_OPTIONS], width=200)
     group.add(dd)
 
-    get_btn = MetroButton(group, text="GET", width=200)
-    group.add(get_btn)
-
-    set_btn = MetroButton(group, text="SET", width=200)
-    group.add(set_btn)
+    btn_row = QWidget(group)
+    btn_row.setStyleSheet("background: transparent;")
+    btn_row_layout = QHBoxLayout(btn_row)
+    btn_row_layout.setContentsMargins(0, 0, 0, 0)
+    btn_row_layout.setSpacing(10)
+    get_btn = MetroButton(btn_row, text="GET", width=95, height=30)
+    set_btn = MetroButton(btn_row, text="SET", width=95, height=30)
+    btn_row_layout.addWidget(get_btn)
+    btn_row_layout.addWidget(set_btn)
+    group.add(btn_row)
 
     status_lbl = MetroLabel(group, text="")
     status_lbl.setAlignment(Qt.AlignCenter)

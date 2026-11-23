@@ -2,7 +2,7 @@
 online_tab.py
 =============
 Builds the ONLINE tab as four subtabs - CHALLENGES, SERVER, TOGGLEABLES,
-and TELEPORTER - using the same MetroTabControl-as-subtabs pattern
+and PLAYERS - using the same MetroTabControl-as-subtabs pattern
 edit_skater_tab.py / toggleables_tab.py use.
 
 This used to be four separate files (challenges_tab.py, server_tab.py,
@@ -19,14 +19,18 @@ Subtabs -------------------------------------------------------------------
   SERVER      - routes the game at a target server IP, and sends chat
                 messages through that server's HTTP chat API.
   TOGGLEABLES - Disable Border / Reset Border for the challenge boundary.
-  TELEPORTER  - teleport to another local player's last-read position, or
-                to typed X/Y/Z coordinates. Local-only: it never writes to
-                another skater's slot.
+  PLAYERS     - the lobby's player names (read on demand with REFRESH LIST,
+                never on a timer) with a Teleport button to the right of
+                each name, plus a Reset button (the RTM reset - then the
+                debug cam is teleported to that player first). More per-player
+                actions will go in that same spot later - plus a Custom Coordinates box. Local-only: it
+                never writes to another skater's slot.
 """
 
 import json
 import os
 import threading
+import time
 import urllib.parse
 
 import requests
@@ -58,12 +62,12 @@ def build(parent_tab, win, state):
     subtabs.add("CHALLENGES")
     subtabs.add("SERVER")
     subtabs.add("TOGGLEABLES")
-    subtabs.add("TELEPORTER")
+    subtabs.add("PLAYERS")
 
     _build_challenges(subtabs.tab("CHALLENGES"), win, state)
     _build_server(subtabs.tab("SERVER"), win, state)
     _build_toggleables(subtabs.tab("TOGGLEABLES"), win, state)
-    _build_teleporter(subtabs.tab("TELEPORTER"), win, state)
+    _build_players(subtabs.tab("PLAYERS"), win, state)
 
     return subtabs
 
@@ -480,6 +484,7 @@ def _build_server(parent_tab, win, state):
 class _ToggleSignals(QObject):
     result = Signal(bool, str)
     freeskate_result = Signal(bool, str)
+    proposals_result = Signal(bool, str)
 
 
 def _build_toggleables(parent_tab, win, state):
@@ -597,16 +602,54 @@ def _build_toggleables(parent_tab, win, state):
     freeskate_btn.clicked.connect(on_freeskate_clicked)
     signals.freeskate_result.connect(on_freeskate_result)
 
-    return {"group": group, "freeskate_group": freeskate_group}
+    # -- Allow Proposals -------------------------------------------------------
+    # Not a toggle: every click just writes "true\0" over the word "false".
+    proposals_group = MetroGroupBox(parent_tab, title="Proposals")
+    proposals_group.setFixedWidth(300)
+    layout.addWidget(proposals_group, alignment=Qt.AlignHCenter)
+
+    proposals_btn = MetroButton(proposals_group, text="Allow Proposals", width=260, height=36)
+    proposals_group.add(proposals_btn)
+
+    proposals_status_lbl = MetroLabel(proposals_group, text="")
+    proposals_status_lbl.setAlignment(Qt.AlignCenter)
+    proposals_status_lbl.setWordWrap(True)
+    proposals_group.add(proposals_status_lbl)
+
+    def do_allow_proposals():
+        if not state.is_ready():
+            signals.proposals_result.emit(False, "Connect and attach first.")
+            return
+        try:
+            state.ps3.Process.Memory.Set(state.pid, data.ADDR_ALLOW_PROPOSALS, data.ALLOW_PROPOSALS_BYTES)
+            signals.proposals_result.emit(True, "Proposals allowed.")
+        except Exception as e:
+            signals.proposals_result.emit(False, str(e))
+
+    def on_proposals_clicked():
+        proposals_btn.setEnabled(False)
+        proposals_status_lbl.setText("Working...")
+        threading.Thread(target=do_allow_proposals, daemon=True).start()
+
+    def on_proposals_result(ok, msg):
+        proposals_status_lbl.setText(msg)
+        proposals_btn.setEnabled(True)
+
+    proposals_btn.clicked.connect(on_proposals_clicked)
+    signals.proposals_result.connect(on_proposals_result)
+
+    return {"group": group, "freeskate_group": freeskate_group, "proposals_group": proposals_group}
 
 
 # ============================================================================
-# TELEPORTER
+# PLAYERS
 # ============================================================================
 
-class _TeleportSignals(QObject):
+class _PlayersSignals(QObject):
     result = Signal(bool, str)
     camera_coords = Signal(bool, str, float, float, float)
+    names = Signal(bool, str, object, bool, int)   # ok, message, [name|None]*6, in_online_game, local slot (-1 unknown)
+    reset_done = Signal(bool, str)
 
 
 def _write_teleport(state, x, y, z):
@@ -618,48 +661,113 @@ def _write_teleport(state, x, y, z):
     state.ps3.Process.Memory.Set(pid, data.TELEPORT_FLAG_2, bytes([0x02]))
 
 
-def _build_teleporter(parent_tab, win, state):
-    signals = _TeleportSignals(win)
+_reset_lock = threading.Lock()
+YOU_STYLE = "color: #4DA3FF; font-weight: bold; border: none; background: transparent;"
 
-    layout = QVBoxLayout(parent_tab)
-    layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-    layout.setContentsMargins(0, 20, 0, 0)
-    layout.setSpacing(12)
 
-    # -- Teleport to Player -----------------------------------------------
-    skater_group = MetroGroupBox(parent_tab, title="Teleport to Player")
-    skater_group.setFixedWidth(300)
-    layout.addWidget(skater_group, alignment=Qt.AlignHCenter)
+def _reset_player(state, index):
+    """Blocking (call off the GUI thread). Grabs player `index`'s (0-5)
+    coordinates and teleports the debug cam to them (the normal teleport -
+    this is the ONLY place the debug cam flag at TELEPORT_FLAG_1 is written),
+    then RTM-resets them: patch the function to `li r9,index`, poke the
+    remaining trigger byte, wait, restore the original bytes (always, even if
+    a write fails). Returns the player's (x, y, z)."""
+    mem = state.ps3.Process.Memory
+    pid = state.pid
+    cur = bytes(mem.Get(pid, data.RESET_FUNC_ADDR, 4))
+    if cur != data.RESET_FUNC_ORIG and cur[:3] != b"\x39\x20\x00":
+        raise RuntimeError(f"Unexpected bytes at {data.RESET_FUNC_ADDR:#010x}: {cur.hex(' ')} - not writing")
 
-    def do_teleport_to_skater(index):
-        if not state.is_ready():
-            signals.result.emit(False, "Connect and attach first.")
-            return
-        try:
-            raw = state.ps3.Process.Memory.Get(state.pid, data.skater_addr(index), 12)
-            x, y, z = data.VEC3_BE.unpack(bytes(raw))
-            _write_teleport(state, x, y, z)
-            signals.result.emit(True, f"Teleported to Player {index + 1} ({x:.2f}, {y:.2f}, {z:.2f})")
-        except Exception as e:
-            signals.result.emit(False, str(e))
+    # 1) debug cam -> that player (once, via the regular teleport)
+    x, y, z = data.VEC3_BE.unpack(bytes(mem.Get(pid, data.skater_addr(index), 12)))
+    _write_teleport(state, x, y, z)
 
-    def make_skater_handler(index):
-        def handler():
-            status_lbl.setText("Teleporting...")
-            threading.Thread(target=do_teleport_to_skater, args=(index,), daemon=True).start()
-        return handler
+    # 2) reset them: 4-byte function patch for RESET_RESTORE_DELAY seconds
+    patched = False
+    try:
+        mem.Set(pid, data.RESET_FUNC_ADDR, data.li_r9(index))
+        patched = True
+        for a in data.RESET_EXTRA_ADDRS:
+            mem.Set(pid, a, bytes([data.RESET_EXTRA_VALUE]))
+        time.sleep(data.RESET_RESTORE_DELAY)
+    finally:
+        if patched:
+            last = None
+            for _ in range(3):
+                try:
+                    mem.Set(pid, data.RESET_FUNC_ADDR, data.RESET_FUNC_ORIG)
+                    last = None
+                    break
+                except Exception as e:
+                    last = e
+                    time.sleep(0.5)
+            if last is not None:
+                raise RuntimeError(f"Reset ran but restoring the original bytes failed: {last}")
+    return x, y, z
 
+
+def _build_players(parent_tab, win, state):
+    signals = _PlayersSignals(win)
+
+    outer = QVBoxLayout(parent_tab)
+    outer.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+    outer.setContentsMargins(0, 20, 0, 0)
+    outer.setSpacing(12)
+
+    columns = QWidget(parent_tab)
+    columns.setStyleSheet("background: transparent;")
+    columns_layout = QHBoxLayout(columns)
+    columns_layout.setContentsMargins(0, 0, 0, 0)
+    columns_layout.setSpacing(16)
+    columns_layout.setAlignment(Qt.AlignTop)
+    outer.addWidget(columns, alignment=Qt.AlignHCenter)
+
+    # -- Player list ------------------------------------------------------
+    players_group = MetroGroupBox(columns, title="Players")
+    players_group.setFixedWidth(490)
+    columns_layout.addWidget(players_group, alignment=Qt.AlignTop)
+
+    refresh_btn = MetroButton(players_group, text="REFRESH LIST", width=458, height=32)
+    players_group.add(refresh_btn)
+
+    name_labels = []
+    name_styles = []      # each label's normal stylesheet, restored when it's not "you"
+    teleport_btns = []
+    reset_btns = []
     for i in range(data.NUM_SKATERS):
-        btn = MetroButton(skater_group, text=f"Teleport to Player {i + 1}", width=260, height=32)
-        btn.clicked.connect(make_skater_handler(i))
-        skater_group.add(btn)
+        row = QWidget(players_group)
+        row.setStyleSheet("background: transparent;")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(8)
+
+        slot_lbl = MetroLabel(row, text=f"Player {i + 1}")
+        slot_lbl.setFixedWidth(60)
+        name_lbl = MetroLabel(row, text="-")
+        # Actions sit to the RIGHT of the name. Future per-player buttons go
+        # in this same row, after the Teleport button.
+        tp_btn = MetroButton(row, text="Teleport", width=90, height=28)
+        tp_btn.setEnabled(False)
+        reset_btn = MetroButton(row, text="Reset", width=90, height=28)
+        reset_btn.setEnabled(False)
+
+        row_layout.addWidget(slot_lbl)
+        row_layout.addWidget(name_lbl, 1)
+        row_layout.addWidget(tp_btn)
+        row_layout.addWidget(reset_btn)
+        players_group.add(row)
+        name_labels.append(name_lbl)
+        name_styles.append(name_lbl.styleSheet())
+        teleport_btns.append(tp_btn)
+        reset_btns.append(reset_btn)
 
     # -- Custom Coordinates --------------------------------------------------
-    custom_group = MetroGroupBox(parent_tab, title="Custom Coordinates")
+    custom_group = MetroGroupBox(columns, title="Custom Coordinates")
     custom_group.setFixedWidth(300)
-    layout.addWidget(custom_group, alignment=Qt.AlignHCenter)
+    columns_layout.addWidget(custom_group, alignment=Qt.AlignTop)
 
     coord_row = QWidget(custom_group)
+    coord_row.setStyleSheet("background: transparent;")
     coord_layout = QHBoxLayout(coord_row)
     coord_layout.setContentsMargins(0, 0, 0, 0)
     coord_layout.setSpacing(8)
@@ -682,11 +790,126 @@ def _build_teleporter(parent_tab, win, state):
     get_coords_btn = MetroButton(custom_group, text="Get Camera Coords", width=260, height=32)
     custom_group.add(get_coords_btn)
 
-    status_lbl = MetroLabel(parent_tab, text="")
+    status_lbl = MetroLabel(parent_tab, text="Press REFRESH LIST to load the lobby's players.")
     status_lbl.setAlignment(Qt.AlignCenter)
     status_lbl.setWordWrap(True)
-    layout.addWidget(status_lbl, alignment=Qt.AlignHCenter)
+    # A word-wrapped label with no fixed width, centred in a layout, sizes
+    # itself to its text and clips longer messages. Give it the same width as
+    # the two columns above it (490 + 16 spacing + 300) so it wraps there and
+    # the layout reserves the right height, plus room for at least 2 lines.
+    status_lbl.setFixedWidth(490 + 16 + 300)
+    status_lbl.setMinimumHeight(status_lbl.fontMetrics().lineSpacing() * 2 + 6)
+    outer.addWidget(status_lbl, alignment=Qt.AlignHCenter)
 
+    # -- Refresh (manual only - no timer) ----------------------------------
+    def do_refresh():
+        if not state.is_ready():
+            signals.names.emit(False, "Connect and attach first.", [None] * data.NUM_SKATERS, True, -1)
+            return
+        try:
+            raw = state.ps3.Process.Memory.Get(state.pid, data.PLAYER_NAME_BASE, data.PLAYER_LIST_READ_LEN)
+            names, online = data.parse_player_names(raw)
+            local = -1
+            if online:
+                try:
+                    local = state.ps3.Process.Memory.Get(state.pid, data.LOCAL_PLAYER_INDEX_ADDR, 1)[0]
+                    if local >= data.NUM_SKATERS:
+                        local = -1   # not a valid slot (game not in a lobby yet)
+                except Exception:
+                    pass
+            if not online:
+                msg = "Names can't be read yet - go into an online game, then refresh."
+            else:
+                msg = f"{sum(n is not None for n in names)}/{data.NUM_SKATERS} players in lobby."
+            signals.names.emit(True, msg, names, online, local)
+        except Exception as e:
+            signals.names.emit(False, f"Read failed: {e}", [None] * data.NUM_SKATERS, True, -1)
+
+    def on_refresh_clicked():
+        refresh_btn.setEnabled(False)
+        status_lbl.setText("Refreshing...")
+        threading.Thread(target=do_refresh, daemon=True).start()
+
+    def on_names(ok, msg, names, online, local):
+        refresh_btn.setEnabled(True)
+        for i, n in enumerate(names):
+            text = n if n is not None else "N/A"
+            is_you = n is not None and i == local
+            if is_you:
+                text += "  (YOU)"
+            name_labels[i].setText(text)
+            # you = blue name, everyone else = the theme's normal text color
+            name_labels[i].setStyleSheet(YOU_STYLE if is_you else name_styles[i])
+            usable = ok and online and n is not None
+            teleport_btns[i].setEnabled(usable)
+            reset_btns[i].setEnabled(usable)
+        status_lbl.setText(msg)
+
+    refresh_btn.clicked.connect(on_refresh_clicked)
+    signals.names.connect(on_names)
+
+    # -- Teleport to a listed player ---------------------------------------
+    def do_teleport_to_skater(index, name):
+        if not state.is_ready():
+            signals.result.emit(False, "Connect and attach first.")
+            return
+        try:
+            raw = state.ps3.Process.Memory.Get(state.pid, data.skater_addr(index), 12)
+            x, y, z = data.VEC3_BE.unpack(bytes(raw))
+            _write_teleport(state, x, y, z)
+            signals.result.emit(True, f"Teleported to {name} ({x:.2f}, {y:.2f}, {z:.2f})")
+        except Exception as e:
+            signals.result.emit(False, str(e))
+
+    def make_skater_handler(index):
+        def handler():
+            status_lbl.setText("Teleporting...")
+            # read the name here on the GUI thread, never from the worker
+            threading.Thread(target=do_teleport_to_skater,
+                             args=(index, name_labels[index].text()), daemon=True).start()
+        return handler
+
+    for i, btn in enumerate(teleport_btns):
+        btn.clicked.connect(make_skater_handler(i))
+
+    # -- Reset a listed player (RTM), then send the debug cam to them -------
+    def do_reset(index, name):
+        try:
+            if not state.is_ready():
+                signals.reset_done.emit(False, "Connect and attach first.")
+                return
+            x, y, z = _reset_player(state, index)
+            signals.reset_done.emit(True, f"Debug cam sent to ({x:.2f}, {y:.2f}, {z:.2f}) and reset {name}.")
+        except Exception as e:
+            signals.reset_done.emit(False, str(e))
+        finally:
+            _reset_lock.release()
+
+    def make_reset_handler(index):
+        def handler():
+            if not _reset_lock.acquire(blocking=False):
+                status_lbl.setText("A reset is already running...")
+                return
+            for b in reset_btns:
+                b.setEnabled(False)
+            status_lbl.setText(f"Resetting Player {index + 1} (takes about {data.RESET_RESTORE_DELAY:g}s)...")
+            # read the name here on the GUI thread, never from the worker
+            name = name_labels[index].text().replace("  (YOU)", "")
+            threading.Thread(target=do_reset, args=(index, name), daemon=True).start()
+        return handler
+
+    for i, btn in enumerate(reset_btns):
+        btn.clicked.connect(make_reset_handler(i))
+
+    def on_reset_done(ok, msg):
+        # buttons come back only for slots that still have a name
+        for i, b in enumerate(reset_btns):
+            b.setEnabled(name_labels[i].text() not in ("-", "N/A"))
+        status_lbl.setText(msg)
+
+    signals.reset_done.connect(on_reset_done)
+
+    # -- Custom coordinates ---------------------------------------------------
     def do_teleport_to_custom(x, y, z):
         if not state.is_ready():
             signals.result.emit(False, "Connect and attach first.")
@@ -735,10 +958,6 @@ def _build_teleporter(parent_tab, win, state):
         status_lbl.setText(msg)
 
     signals.camera_coords.connect(on_camera_coords)
+    signals.result.connect(lambda ok, msg: status_lbl.setText(msg))
 
-    def on_result(ok, msg):
-        status_lbl.setText(msg)
-
-    signals.result.connect(on_result)
-
-    return {"group_skater": skater_group, "group_custom": custom_group}
+    return {"group_players": players_group, "group_custom": custom_group}

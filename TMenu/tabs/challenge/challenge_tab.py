@@ -28,6 +28,7 @@ from PySide6.QtWidgets import QVBoxLayout
 from ui.TsUI_qt import MetroButton, MetroLabel, MetroGroupBox, MetroTabControl
 from ui.field_widgets import build_float_grid
 from tabs.toggleables_tab import build_toggle_group
+from ui.layout_helpers import card_row
 from tabs.challenge.challenge_data import (
     PARTY_PLAY_TOGGLES, ONE_PLAYER_PARTY_PLAY, TIMER_FIELDS,
 )
@@ -57,10 +58,7 @@ def build(parent_tab, win, state):
 
 
 def _build_party_play(tab, state):
-    layout = QVBoxLayout(tab)
-    layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-    layout.setContentsMargins(0, 20, 0, 0)
-    layout.setSpacing(14)
+    layout = card_row(tab)   # the two Party Play cards sit side by side
 
     # -- Better Party Play: ordinary on/off toggle ------------------------
     build_toggle_group(tab, state, "Party Play", PARTY_PLAY_TOGGLES, parent_layout=layout)

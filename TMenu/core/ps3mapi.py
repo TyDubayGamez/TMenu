@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import re
 import socket
+import threading
 
 __all__ = [
     "PS3MAPI", "PS3MAPIError", "ResponseCode",
@@ -114,6 +115,11 @@ class _Connection:
         self.log = ""
         self.response_code = 0
         self.response = ""
+        # Every command/memory transfer is a multi-step exchange on shared
+        # sockets, so two threads (e.g. the background offset scan and a
+        # button press on the GUI thread) must never interleave. Re-entrant
+        # so cmd() -> send_command() etc. can nest freely.
+        self.lock = threading.RLock()
 
     @property
     def is_connected(self) -> bool:
@@ -205,9 +211,10 @@ class _Connection:
 
     def cmd(self, text: str) -> str:
         """Send a command, assert a generic-OK response, return the response text."""
-        self.send_command(text)
-        self._check_ok()
-        return self.response
+        with self.lock:
+            self.send_command(text)
+            self._check_ok()
+            return self.response
 
     def cmd_int(self, text: str, base: int = 10) -> int:
         return int(self.cmd(text), base)
@@ -243,6 +250,14 @@ class _Connection:
             self.data_sock = None
 
     def memory_get(self, pid: int, address: int, length: int) -> bytes:
+        with self.lock:
+            return self._memory_get(pid, address, length)
+
+    def memory_set(self, pid: int, address: int, data: bytes) -> None:
+        with self.lock:
+            self._memory_set(pid, address, data)
+
+    def _memory_get(self, pid: int, address: int, length: int) -> bytes:
         self._set_binary_mode(True)
         self._open_data_socket()
         self.send_command(f"MEMORY GET {pid} {address:016X} {length}")
@@ -265,7 +280,7 @@ class _Connection:
         self._set_binary_mode(False)
         return bytes(data)
 
-    def memory_set(self, pid: int, address: int, data: bytes) -> None:
+    def _memory_set(self, pid: int, address: int, data: bytes) -> None:
         self._set_binary_mode(True)
         self._open_data_socket()
         self.send_command(f"MEMORY SET {pid} {address:016X}")

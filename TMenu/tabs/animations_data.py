@@ -35,6 +35,8 @@ CLEAR CACHE button) and the very next attach rebuilds it from scratch.
 
 import json
 import os
+import threading
+import time
 
 from core.app_paths import data_dir, export_dir
 
@@ -171,6 +173,9 @@ def scan_for_patterns(state, patterns: dict, start=SCAN_START, end=SCAN_END, chu
 
         tail = raw[-overlap:] if overlap else b""
         addr += length
+        # Brief breather so the GUI thread's own reads/writes can grab the
+        # connection between chunks while a background scan is running.
+        time.sleep(0.002)
 
     return found
 
@@ -231,6 +236,42 @@ def ensure_cache(state) -> dict:
     else:
         _runtime_cache = scan_and_cache(state)
     return _runtime_cache
+
+
+_scan_thread_lock = threading.Lock()
+
+
+def ensure_cache_async(state) -> None:
+    """Non-blocking version of ensure_cache - this is what the attach hook
+    uses so the UI never freezes. If the cache file already exists it's
+    loaded right away (just a small file read). Otherwise the scan runs on
+    its own daemon thread, state.scanning is True while it runs (the
+    CONNECTION tab shows "Scanning for offsets..." and ANIMATIONS says it's
+    still scanning), and state.scan_completed / state.scan_error report how
+    it ended. A second call while a scan is already running does nothing."""
+    global _runtime_cache
+    if os.path.isfile(cache_file_path()):
+        _runtime_cache = load_cache()
+        return
+    if not _scan_thread_lock.acquire(blocking=False):
+        return  # a scan is already running
+
+    def work():
+        global _runtime_cache
+        try:
+            _runtime_cache = scan_and_cache(state)
+            state.set_scan_status(False, completed=True)
+        except Exception as e:
+            state.set_scan_status(False, error=f"Offset scan failed: {e}")
+        finally:
+            _scan_thread_lock.release()
+
+    state.set_scan_status(True)
+    threading.Thread(target=work, daemon=True).start()
+
+
+def is_scanning() -> bool:
+    return _scan_thread_lock.locked()
 
 
 def current_cache() -> dict:

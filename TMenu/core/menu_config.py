@@ -74,6 +74,7 @@ from tabs.adjustables_data import ON_BOARD_FIELDS, OFF_BOARD_FIELDS
 from tabs.visuals_data import (
     ADJUSTABLES_FIELDS, ENVIRONMENT_FIELDS, SCREEN_FIELDS, WORLD_FIELDS, HUD_FIELDS,
     SCORE_X1_ADDRESS, SCORE_X2_ADDRESS, SCORE_X3_ADDRESS, SCORE_MULTIPLIER_DEFAULT,
+    SCORE_MULTIPLIER_FACTORS, SCORE_ADDRESSES,
     FOG_COLOR_ADDRESS, FOG_COLOR_DEFAULT, SKATER_COLOR_ADDRESS, SKATER_COLOR_DEFAULT,
 )
 from tabs.challenge.challenge_data import TIMER_FIELDS, PARTY_PLAY_TOGGLES
@@ -236,8 +237,8 @@ def _apply_park_rgb(state, saved) -> int:
 
 
 def _apply_hud_score_multiplier(state, value):
-    for addr, mult in ((SCORE_X1_ADDRESS, 1), (SCORE_X2_ADDRESS, 2), (SCORE_X3_ADDRESS, 3)):
-        state.ps3.Process.Memory.Set(state.pid, addr, struct.pack(">f", float(value) * mult))
+    for addr, factor in zip(SCORE_ADDRESSES, SCORE_MULTIPLIER_FACTORS):
+        state.ps3.Process.Memory.Set(state.pid, addr, struct.pack(">f", float(value) * factor))
 
 
 # ---------------------------------------------------------------------------

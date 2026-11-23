@@ -39,20 +39,62 @@ destroyed widget from an old, torn-down window (see app.py's rebuild_tabs)
 failing quietly here is expected and harmless, not a bug to surface.
 """
 
+import threading
+
 from PySide6.QtCore import QObject, Signal
 
 
 class _RefreshBridge(QObject):
     fire = Signal()
+    done = Signal(object)   # carries read()'s result to the GUI thread
 
 
-def on_attach_refresh(state, anchor, refresh):
-    """Wires `refresh` (no-arg callable) up to fire on the GUI thread
-    every time `state` attaches, and calls it once immediately if already
-    attached. `anchor` just needs to be a widget that outlives the need for
-    this refresh (its parent tab/group is normal) - the bridge is stashed
-    on it so it isn't garbage collected once this function returns."""
+def on_attach_refresh(state, anchor, refresh, read=None):
+    """Wires `refresh` up to run on the GUI thread every time `state`
+    attaches, and once immediately if already attached. `anchor` just needs
+    to be a widget that outlives the need for this refresh (its parent
+    tab/group is normal) - the bridge is stashed on it so it isn't garbage
+    collected once this function returns.
+
+    Two modes:
+      * read=None  - `refresh()` (no args) runs on the GUI thread. It must
+        NOT do PS3 memory I/O (that would freeze the UI - the connection is
+        shared with the background offset scan and every read is several
+        network round trips).
+      * read=fn    - anything that reads PS3 memory goes here. `fn()` runs on
+        a background thread (never the GUI thread) and its return value is
+        handed to `refresh(result)`, which runs on the GUI thread and only
+        touches widgets. If `fn` raises, the refresh is skipped silently."""
     bridge = _RefreshBridge(anchor)
+
+    if read is not None:
+        def _apply(result):
+            try:
+                refresh(result)
+            except Exception:
+                pass
+
+        def _work():
+            try:
+                result = read()
+            except Exception:
+                return
+            try:
+                bridge.done.emit(result)
+            except RuntimeError:
+                pass   # anchor/window already torn down
+
+        def _kick():
+            threading.Thread(target=_work, daemon=True).start()
+
+        bridge.done.connect(_apply)
+        state.on_attach.append(_kick)
+        if not hasattr(anchor, "_gui_refresh_bridges"):
+            anchor._gui_refresh_bridges = []
+        anchor._gui_refresh_bridges.append(bridge)
+        if state.is_ready():
+            _kick()
+        return
 
     def _safe_refresh():
         try:
@@ -72,3 +114,27 @@ def on_attach_refresh(state, anchor, refresh):
 
     if state.is_ready():
         _safe_refresh()
+
+
+class _ScanBridge(QObject):
+    fire = Signal()
+
+
+def on_scan_change(state, anchor, callback):
+    """Runs `callback` (no-arg) on the GUI thread whenever the background
+    offset scan starts, finishes or fails (state.set_scan_status). Same
+    Signal-bridge trick as on_attach_refresh; read state.scanning /
+    state.scan_completed / state.scan_error inside the callback."""
+    bridge = _ScanBridge(anchor)
+
+    def _safe():
+        try:
+            callback()
+        except Exception:
+            pass
+
+    bridge.fire.connect(_safe)
+    state.scan_listeners.append(bridge.fire.emit)
+    if not hasattr(anchor, "_gui_scan_bridges"):
+        anchor._gui_scan_bridges = []
+    anchor._gui_scan_bridges.append(bridge)

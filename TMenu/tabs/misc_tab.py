@@ -64,7 +64,7 @@ def _build_debug(tab, state):
     layout.setContentsMargins(0, 20, 0, 0)
 
     group = MetroGroupBox(tab, title="Debug")
-    group.setFixedWidth(280)
+    group.setFixedWidth(232)
     layout.addWidget(group, alignment=Qt.AlignHCenter)
 
     status_lbl = MetroLabel(group, text="")
@@ -72,7 +72,7 @@ def _build_debug(tab, state):
     status_lbl.setWordWrap(True)
 
     # -- Debug Cam - one-way write ---------------------------------------
-    debug_cam_btn = MetroButton(group, text="Debug Cam", width=240, height=32)
+    debug_cam_btn = MetroButton(group, text="Debug Cam", width=200, height=30)
     group.add(debug_cam_btn)
 
     def on_debug_cam_clicked():
@@ -90,7 +90,7 @@ def _build_debug(tab, state):
     debug_cam_btn.clicked.connect(on_debug_cam_clicked)
 
     # -- Animation Debug - on/off toggle ---------------------------------
-    anim_btn = MetroButton(group, text="Animation Debug", width=240, height=32)
+    anim_btn = MetroButton(group, text="Animation Debug", width=200, height=30)
     group.add(anim_btn)
 
     def on_anim_clicked():

@@ -22,7 +22,7 @@ from ui.TsUI_qt import (
     MetroButton, MetroLabel, MetroGroupBox, MetroTabControl,
     SearchableDropdown, labeled_row,
 )
-from core.gui_refresh import on_attach_refresh
+from core.gui_refresh import on_attach_refresh, on_scan_change
 
 from tabs import animations_data as data
 
@@ -45,10 +45,15 @@ def build(parent_tab, win, state):
     _build_flip_tricks(subtabs.tab("FLIP TRICKS"), win, state)
     _build_cache(subtabs.tab("CACHE"), win, state)
 
-    # Boot scan: fires immediately if already attached, and again on every
-    # future attach - see animations_data.ensure_cache's docstring for what
-    # "boot" means here (cache file missing -> rescan, otherwise just load).
-    on_attach_refresh(state, subtabs, lambda: data.ensure_cache(state))
+    # Boot scan: runs on every attach (and right now if already attached) -
+    # but in the BACKGROUND, so the UI never freezes. See
+    # animations_data.ensure_cache_async for what "boot" means here (cache
+    # file missing -> rescan, otherwise just load). state.on_attach fires on
+    # the connect thread, and ensure_cache_async only spawns the scan thread
+    # and returns, so nothing here touches Qt widgets.
+    state.on_attach.append(lambda: data.ensure_cache_async(state))
+    if state.is_ready():
+        data.ensure_cache_async(state)
 
     return subtabs
 
@@ -105,9 +110,9 @@ def _build_flip_tricks(tab, win, state):
     btn_row_layout = QHBoxLayout(btn_row)
     btn_row_layout.setContentsMargins(0, 4, 0, 0)
     btn_row_layout.setSpacing(10)
-    reset_all_btn = MetroButton(btn_row, text="RESET ALL", width=210, height=32)
-    get_btn = MetroButton(btn_row, text="GET", width=210, height=32)
-    reset_btn = MetroButton(btn_row, text="RESET", width=210, height=32)
+    reset_all_btn = MetroButton(btn_row, text="RESET ALL", width=204, height=32)
+    get_btn = MetroButton(btn_row, text="GET", width=204, height=32)
+    reset_btn = MetroButton(btn_row, text="RESET", width=204, height=32)
     btn_row_layout.addWidget(reset_all_btn)
     btn_row_layout.addWidget(get_btn)
     btn_row_layout.addWidget(reset_btn)
@@ -124,6 +129,9 @@ def _build_flip_tricks(tab, win, state):
 
     def _addr_for(name):
         addr = data.current_cache().get(name)
+        if addr is None and data.is_scanning():
+            status_lbl.setText("Still scanning for offsets... try again in a moment.")
+            return None
         if addr is None:
             status_lbl.setText(
                 f'"{name}" wasn\'t found in memory. Reattach to rescan, or '
@@ -196,6 +204,9 @@ def _build_flip_tricks(tab, win, state):
         if not state.is_ready():
             status_lbl.setText("Connect and attach first.")
             return
+        if data.is_scanning():
+            status_lbl.setText("Still scanning for offsets... try again in a moment.")
+            return
         cache = data.current_cache()
         ok, failed = 0, 0
         for name, aob in real_tricks:
@@ -244,6 +255,9 @@ def _build_cache(tab, win, state):
     group.add(status_lbl)
 
     def _refresh_info():
+        if data.is_scanning():
+            info_lbl.setText("Still scanning for offsets...")
+            return
         total = len(data.all_trick_patterns())
         found = len(data.current_cache())
         on_disk = os.path.isfile(data.cache_file_path())
@@ -257,5 +271,6 @@ def _build_cache(tab, win, state):
     clear_btn.clicked.connect(on_clear)
 
     on_attach_refresh(state, group, _refresh_info)
+    on_scan_change(state, group, _refresh_info)   # update when a background scan ends
 
     return group

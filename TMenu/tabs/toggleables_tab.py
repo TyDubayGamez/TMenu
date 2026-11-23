@@ -19,10 +19,11 @@ of that toggle's addresses get read/written together as one unit.
 """
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QGridLayout
 
 from ui.TsUI_qt import MetroButton, MetroLabel, MetroGroupBox, MetroTabControl, set_widget_bold
 from core.gui_refresh import on_attach_refresh
+from ui.layout_helpers import BTN_WIDTH, BTN_HEIGHT, BTN_GAP, card_width
 from core import session_changes
 
 from tabs.toggleables_data import (
@@ -95,7 +96,7 @@ def build(parent_tab, win, state):
     return subtabs
 
 
-def build_toggle_group(tab, state, title, toggles, parent_layout=None):
+def build_toggle_group(tab, state, title, toggles, parent_layout=None, columns=None):
     """Builds one toggle-button group box into `tab`. Public (no leading
     underscore) so visuals_tab.py can reuse it for the VISUALS>TOGGLEABLES
     subtab (and its HUD subtab's Glitchy Text toggle) instead of
@@ -105,7 +106,13 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
     to add this group into it instead of creating a fresh layout on `tab` -
     same idea as field_widgets.py's build_float_grid, for a subtab that
     holds more than one group. Leave as None for the normal
-    one-group-per-tab case, which behaves exactly as before."""
+    one-group-per-tab case.
+
+    `columns`: how many button columns the card has. Left as None it picks
+    2 columns for 4+ toggles (so a long list becomes a short, wide card)
+    and 1 column otherwise."""
+    if columns is None:
+        columns = 2 if len(toggles) > 3 else 1
     if parent_layout is None:
         layout = QVBoxLayout(tab)
         layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
@@ -114,7 +121,7 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
         layout = parent_layout
 
     group = MetroGroupBox(tab, title=title)
-    group.setFixedWidth(280)
+    group.setFixedWidth(card_width(columns))
     layout.addWidget(group, alignment=Qt.AlignHCenter)
 
     status_lbl = MetroLabel(group, text="")
@@ -166,25 +173,39 @@ def build_toggle_group(tab, state, title, toggles, parent_layout=None):
 
         return on_clicked
 
-    for name, cfg in toggles.items():
-        btn = MetroButton(group, text=name, width=240, height=32)
+    grid_holder = QWidget(group)
+    grid_holder.setStyleSheet("background: transparent;")
+    grid = QGridLayout(grid_holder)
+    grid.setContentsMargins(0, 0, 0, 0)
+    grid.setHorizontalSpacing(BTN_GAP)
+    grid.setVerticalSpacing(BTN_GAP)
+    group.add(grid_holder)
+
+    for i, (name, cfg) in enumerate(toggles.items()):
+        btn = MetroButton(grid_holder, text=name, width=BTN_WIDTH, height=BTN_HEIGHT)
         btn.clicked.connect(make_toggle_handler(name, cfg, btn))
-        group.add(btn)
+        grid.addWidget(btn, i // columns, i % columns)
         bold_buttons.append((name, cfg["writes"]))
         register_synced_button(name, btn)
 
     group.add(status_lbl)
 
-    def _refresh_bold_states():
-        # Silent - never touches status_lbl. A toggle whose read fails
-        # (or that isn't in a determinable state yet) is just left as-is
-        # rather than guessed at. Uses set_bold_everywhere (not
-        # set_widget_bold) so an attach anywhere also catches up any extra
-        # synced button living outside this group - see park_tab.py.
+    def _read_bold_states():
+        # Background thread: memory reads only, no widgets. A toggle whose
+        # read fails is simply left out (and so left as-is on screen).
+        states = []
         for name, writes in bold_buttons:
             try:
-                set_bold_everywhere(name, _is_on(writes))
+                states.append((name, _is_on(writes)))
             except Exception:
                 pass
+        return states
 
-    on_attach_refresh(state, group, _refresh_bold_states)
+    def _apply_bold_states(states):
+        # Silent - never touches status_lbl. Uses set_bold_everywhere (not
+        # set_widget_bold) so an attach anywhere also catches up any extra
+        # synced button living outside this group - see park_tab.py.
+        for name, is_on in states:
+            set_bold_everywhere(name, is_on)
+
+    on_attach_refresh(state, group, _apply_bold_states, read=_read_bold_states)

@@ -158,7 +158,7 @@ def build_float_grid(tab, state, title, fields, columns=2, group_width=None, par
         layout = parent_layout
 
     if group_width is None:
-        group_width = columns * FIELD_WIDTH + (columns - 1) * GRID_H_SPACING + 32
+        group_width = columns * FIELD_WIDTH + (columns - 1) * GRID_H_SPACING + 34   # 16+16 margins + 2px borders
 
     group = MetroGroupBox(tab, title=title)
     group.setFixedWidth(group_width)
@@ -177,7 +177,7 @@ def build_float_grid(tab, state, title, fields, columns=2, group_width=None, par
     group.add(grid_holder)
 
     all_fields = []  # (do_get, do_set) pairs for GET ALL / SET ALL
-    prefill_fields = []  # do_prefill_if_nondefault callables, for the on-attach refresh
+    prefill_fields = []  # (field, box, kind, default) for the on-attach prefill
 
     for i, field in enumerate(fields):
         row, col = divmod(i, columns)
@@ -258,22 +258,10 @@ def build_float_grid(tab, state, title, fields, columns=2, group_width=None, par
                     status_lbl.setText(str(e))
                 return False
 
-        def do_prefill_if_nondefault(field=field, box=box, kind=kind, default=default):
-            """Quietly loads the field's current value into its box, but
-            only if that value isn't (close enough to) the vanilla default -
-            called on attach so a field someone's already changed shows its
-            real value right away, while an untouched one just keeps
-            showing the greyed-out default placeholder. Never touches
-            status_lbl and never raises - see gui_refresh.on_attach_refresh,
-            which already wraps this in its own try/except."""
-            value = field["get"](state)
-            if not _is_default(kind, value, default):
-                box.setText(_format_value(kind, value))
-
         get_btn.clicked.connect(lambda _checked=False, g=do_get: g())
         set_btn.clicked.connect(lambda _checked=False, s=do_set: s())
         all_fields.append((do_get, do_set))
-        prefill_fields.append(do_prefill_if_nondefault)
+        prefill_fields.append((field, box, kind, default))
 
     if len(all_fields) > 1:
         all_row = QWidget(group)
@@ -308,14 +296,25 @@ def build_float_grid(tab, state, title, fields, columns=2, group_width=None, par
 
     group.add(status_lbl)
 
-    def _refresh_on_attach():
-        for prefill in prefill_fields:
+    # On attach, quietly load each field's current value into its box, but
+    # only if it isn't the vanilla default (so an untouched field keeps its
+    # greyed-out placeholder). The memory reads happen on a background
+    # thread; only the box.setText calls run on the GUI thread.
+    def _read_on_attach():
+        values = []
+        for field, _box, _kind, _default in prefill_fields:
             try:
-                prefill()
+                values.append((True, field["get"](state)))
             except Exception:
-                pass
+                values.append((False, None))
+        return values
 
-    on_attach_refresh(state, group, _refresh_on_attach)
+    def _apply_on_attach(values):
+        for (field, box, kind, default), (ok, value) in zip(prefill_fields, values):
+            if ok and not _is_default(kind, value, default):
+                box.setText(_format_value(kind, value))
+
+    on_attach_refresh(state, group, _apply_on_attach, read=_read_on_attach)
 
     return group
 
@@ -333,7 +332,7 @@ _RGB_CHANNELS = ("RED", "GREEN", "BLUE")
 
 
 def build_rgb_field_group(tab, win, state, title, address, default=None, parent_layout=None,
-                           group_width=250, session_key=None):
+                           group_width=290, session_key=None):
     """`default`, if given, is an (r, g, b) tuple - shown as each box's
     placeholder and used for the same "only prefill on attach if it isn't
     the vanilla default" rule build_float_grid's fields follow (see
@@ -372,14 +371,18 @@ def build_rgb_field_group(tab, win, state, title, address, default=None, parent_
         boxes[channel] = box
     group.add(grid_holder)
 
-    picker_btn = MetroButton(group, text="PICK COLOR", width=200)
-    group.add(picker_btn)
-
-    get_btn = MetroButton(group, text="GET RGB", width=200)
-    group.add(get_btn)
-
-    set_btn = MetroButton(group, text="SET RGB", width=200)
-    group.add(set_btn)
+    # PICK / GET / SET in one row instead of three stacked full-width buttons.
+    btn_row = QWidget(group)
+    btn_row.setStyleSheet("background: transparent;")
+    btn_row_layout = QHBoxLayout(btn_row)
+    btn_row_layout.setContentsMargins(0, 0, 0, 0)
+    btn_row_layout.setSpacing(8)
+    picker_btn = MetroButton(btn_row, text="PICK", width=80, height=BTN_HEIGHT)
+    get_btn = MetroButton(btn_row, text="GET", width=80, height=BTN_HEIGHT)
+    set_btn = MetroButton(btn_row, text="SET", width=80, height=BTN_HEIGHT)
+    for b in (picker_btn, get_btn, set_btn):
+        btn_row_layout.addWidget(b)
+    group.add(btn_row)
 
     status_lbl = MetroLabel(group, text="")
     status_lbl.setAlignment(Qt.AlignCenter)
@@ -444,8 +447,7 @@ def build_rgb_field_group(tab, win, state, title, address, default=None, parent_
     get_btn.clicked.connect(on_get_clicked)
     set_btn.clicked.connect(on_set_clicked)
 
-    def _refresh_on_attach():
-        values = _read()
+    def _apply_on_attach(values):
         is_default = default is not None and all(
             math.isclose(v, d, rel_tol=1e-4, abs_tol=1e-4) for v, d in zip(values, default)
         )
@@ -453,6 +455,6 @@ def build_rgb_field_group(tab, win, state, title, address, default=None, parent_
             for channel, value in zip(_RGB_CHANNELS, values):
                 boxes[channel].setText(f"{value:.4f}")
 
-    on_attach_refresh(state, group, _refresh_on_attach)
+    on_attach_refresh(state, group, _apply_on_attach, read=_read)
 
     return group

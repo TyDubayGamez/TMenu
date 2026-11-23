@@ -1,10 +1,4 @@
 # -*- mode: python ; coding: utf-8 -*-
-#
-# Disposable: build.bat deletes and regenerates this file from its own
-# PyInstaller CLI flags every run (mirroring what's below) - only kept
-# here for reference / for running pyinstaller directly on the .spec
-# instead of via build.bat. Run from build\ (this file's own folder) -
-# app.py is one level up at the repo root, hence '../app.py' below.
 
 
 a = Analysis(
